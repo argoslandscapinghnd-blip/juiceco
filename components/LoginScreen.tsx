@@ -8,9 +8,10 @@ import { Usuario } from "./ui/types";
 import { supabase } from "@/supabase";
 
 interface SesionActiva {
-  id:          number;
-  sucursal_id: number;
-  sucursal:    { nombre: string; codigo: string };
+  id:            number;
+  sucursal_id:   number;
+  fondo_inicial: number;
+  sucursal:      { nombre: string; codigo: string };
 }
 
 interface Props {
@@ -68,10 +69,10 @@ export default function LoginScreen({ onIngresar }: Props) {
       return;
     }
 
-    // 2. Verificar si tiene sesión activa
+    // 2. Verificar si tiene sesión activa — incluye fondo_inicial
     const { data: sesionData } = await supabase
       .from("sesiones_caja")
-      .select("id, sucursal_id, sucursales(nombre, codigo)")
+      .select("id, sucursal_id, fondo_inicial, sucursales(nombre, codigo)")
       .eq("usuario_id", userData.id)
       .eq("activa", true)
       .single();
@@ -83,9 +84,10 @@ export default function LoginScreen({ onIngresar }: Props) {
 
     if (sesionData) {
       const sesion: SesionActiva = {
-        id:          sesionData.id,
-        sucursal_id: sesionData.sucursal_id,
-        sucursal:    (sesionData as any).sucursales,
+        id:            sesionData.id,
+        sucursal_id:   sesionData.sucursal_id,
+        fondo_inicial: sesionData.fondo_inicial ?? 0,
+        sucursal:      (sesionData as any).sucursales,
       };
       onIngresar(userData as Usuario, sesion);
     } else {
