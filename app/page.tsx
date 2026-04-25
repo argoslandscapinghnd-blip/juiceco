@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { colors } from "@/components/ui/styles";
-import { Pantalla, ItemCarrito, DatosFactura, MetodoPago, PRECIO_UNITARIO, Usuario, Sucursal, Producto } from "@/components/ui/types";
+import { Pantalla, ItemCarrito, DatosFactura, MetodoPago, PRECIO_UNITARIO, Usuario, Sucursal, Producto, Insumo } from "@/components/ui/types";
 
 import LoginScreen        from "@/components/LoginScreen";
 import PuntoVentaScreen   from "@/components/PuntoVentaScreen";
@@ -20,24 +20,27 @@ import SucursalesScreen   from "@/components/SucursalesScreen";
 import FormSucursalScreen from "@/components/FormSucursalScreen";
 import BebidasScreen      from "@/components/BebidasScreen";
 import FormBebidaScreen   from "@/components/FormBebidaScreen";
+import InsumosScreen      from "@/components/InsumosScreen";
+import FormInsumoScreen   from "@/components/FormInsumoScreen";
 
 export default function Home() {
-  const [pantalla,          setPantalla]          = useState<Pantalla>("login");
-  const [usuarioActual,     setUsuarioActual]     = useState<Usuario | null>(null);
-  const [sucursalId,        setSucursalId]        = useState<number>(0);
-  const [puntoNombre,       setPuntoNombre]       = useState("");
-  const [sesionCajaId,      setSesionCajaId]      = useState<number>(0);
-  const [fondoInicial,      setFondoInicial]      = useState<number>(0);
-  const [carrito,           setCarrito]           = useState<ItemCarrito[]>([]);
-  const [productoActual,    setProductoActual]    = useState<string | null>(null);
-  const [precioActual,      setPrecioActual]      = useState<number>(PRECIO_UNITARIO);
-  const [metodoPago,        setMetodoPago]        = useState<MetodoPago>("efectivo");
-  const [montoRecibido,     setMontoRecibido]     = useState<number | undefined>();
-  const [conFactura,        setConFactura]        = useState(false);
-  const [datosFactura,      setDatosFactura]      = useState<DatosFactura | undefined>();
-  const [usuarioEditar,     setUsuarioEditar]     = useState<Usuario | undefined>();
-  const [sucursalEditar,    setSucursalEditar]    = useState<Sucursal | undefined>();
-  const [bebidaEditar,      setBebidaEditar]      = useState<Producto | undefined>();
+  const [pantalla,       setPantalla]       = useState<Pantalla>("login");
+  const [usuarioActual,  setUsuarioActual]  = useState<Usuario | null>(null);
+  const [sucursalId,     setSucursalId]     = useState<number>(0);
+  const [puntoNombre,    setPuntoNombre]    = useState("");
+  const [sesionCajaId,   setSesionCajaId]   = useState<number>(0);
+  const [fondoInicial,   setFondoInicial]   = useState<number>(0);
+  const [carrito,        setCarrito]        = useState<ItemCarrito[]>([]);
+  const [productoActual, setProductoActual] = useState<string | null>(null);
+  const [precioActual,   setPrecioActual]   = useState<number>(PRECIO_UNITARIO);
+  const [metodoPago,     setMetodoPago]     = useState<MetodoPago>("efectivo");
+  const [montoRecibido,  setMontoRecibido]  = useState<number | undefined>();
+  const [conFactura,     setConFactura]     = useState(false);
+  const [datosFactura,   setDatosFactura]   = useState<DatosFactura | undefined>();
+  const [usuarioEditar,  setUsuarioEditar]  = useState<Usuario | undefined>();
+  const [sucursalEditar, setSucursalEditar] = useState<Sucursal | undefined>();
+  const [bebidaEditar,   setBebidaEditar]   = useState<Producto | undefined>();
+  const [insumoEditar,   setInsumoEditar]   = useState<Insumo | undefined>();
 
   const totalCarrito = carrito.reduce((s, i) => s + i.cantidad * i.precio, 0);
   const esAdmin = usuarioActual?.rol === "administrador";
@@ -85,24 +88,21 @@ export default function Home() {
         {pantalla === "login" && <LoginScreen onIngresar={handleLogin} />}
 
         {pantalla === "punto" && (
-          <PuntoVentaScreen
-            esAdmin={esAdmin} usuarioId={usuarioActual?.id}
+          <PuntoVentaScreen esAdmin={esAdmin} usuarioId={usuarioActual?.id}
             onSeleccionar={(id, nombre) => { setSucursalId(id); setPuntoNombre(nombre); setPantalla("caja"); }}
             onContinuar={(id, nombre, sesionId) => { setSucursalId(id); setPuntoNombre(nombre); setSesionCajaId(sesionId); setPantalla("menu"); }}
             onBack={() => setPantalla(esAdmin ? "admin" : "login")}
           />
         )}
         {pantalla === "caja" && (
-          <AperturaCajaScreen
-            sucursalId={sucursalId} punto={puntoNombre}
+          <AperturaCajaScreen sucursalId={sucursalId} punto={puntoNombre}
             usuario={usuarioActual?.nombre ?? ""} usuarioId={usuarioActual?.id ?? ""}
             onAbrir={(sesionId, fondo) => { setSesionCajaId(sesionId); setFondoInicial(fondo); setPantalla("menu"); }}
             onBack={() => setPantalla("punto")}
           />
         )}
         {pantalla === "menu" && (
-          <MenuScreen
-            carrito={carrito} usuario={usuarioActual?.nombre ?? ""} sucursal={puntoNombre}
+          <MenuScreen carrito={carrito} usuario={usuarioActual?.nombre ?? ""} sucursal={puntoNombre}
             onSeleccionarSabor={(nombre, precio) => { setProductoActual(nombre); setPrecioActual(precio); setPantalla("cantidad"); }}
             onVerCarrito={() => setPantalla("carrito")}
             onVerTurno={() => setPantalla("mi_turno")}
@@ -115,10 +115,8 @@ export default function Home() {
         {pantalla === "carrito" && (
           <CarritoScreen carrito={carrito} usuario={usuarioActual?.nombre ?? ""} sucursal={puntoNombre}
             onEliminarItem={(n) => setCarrito((p) => p.filter((i) => i.nombre !== n))}
-            onVaciarCarrito={() => setCarrito([])}
-            onFinalizarVenta={() => setPantalla("factura")}
-            onBack={() => setPantalla("menu")}
-            onVerTurno={() => setPantalla("mi_turno")}
+            onVaciarCarrito={() => setCarrito([])} onFinalizarVenta={() => setPantalla("factura")}
+            onBack={() => setPantalla("menu")} onVerTurno={() => setPantalla("mi_turno")}
             onCerrarSesion={cerrarSesionCajero}
           />
         )}
@@ -150,7 +148,7 @@ export default function Home() {
             onUsuarios={() => setPantalla("admin_usuarios")}
             onSucursales={() => setPantalla("admin_sucursales")}
             onBebidas={() => setPantalla("admin_bebidas")}
-            onInventario={() => alert("Próximamente")}
+            onInsumos={() => setPantalla("admin_insumos")}
             onReportes={() => alert("Próximamente")}
             onModoCajero={() => setPantalla("punto")}
             onCerrarSesion={() => { setUsuarioActual(null); setPantalla("login"); }}
@@ -173,6 +171,12 @@ export default function Home() {
         )}
         {(pantalla === "admin_nueva_bebida" || pantalla === "admin_editar_bebida") && (
           <FormBebidaScreen bebidaEditar={bebidaEditar} onGuardar={() => { setBebidaEditar(undefined); setPantalla("admin_bebidas"); }} onBack={() => setPantalla("admin_bebidas")} />
+        )}
+        {pantalla === "admin_insumos" && (
+          <InsumosScreen onNuevo={() => { setInsumoEditar(undefined); setPantalla("admin_nuevo_insumo"); }} onEditar={(i) => { setInsumoEditar(i); setPantalla("admin_editar_insumo"); }} onBack={() => setPantalla("admin")} />
+        )}
+        {(pantalla === "admin_nuevo_insumo" || pantalla === "admin_editar_insumo") && (
+          <FormInsumoScreen insumoEditar={insumoEditar} onGuardar={() => { setInsumoEditar(undefined); setPantalla("admin_insumos"); }} onBack={() => setPantalla("admin_insumos")} />
         )}
 
       </div>
