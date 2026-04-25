@@ -68,6 +68,9 @@ export default function PuntoVentaScreen({
 
   useEffect(() => { cargar(); }, []);
 
+  // ¿El admin ya tiene una sucursal activa?
+  const tengoSucursalActiva = esAdmin && sucursales.some(s => s.ocupada && s.usuarioId === usuarioId);
+
   const liberarSucursal = async (s: SucursalConEstado) => {
     if (!s.sesionId) return;
     setLiberando(s.id);
@@ -118,7 +121,6 @@ export default function PuntoVentaScreen({
     <section>
       <Header titulo="Seleccione punto de venta" onBack={onBack} />
 
-      {/* Aviso admin */}
       {esAdmin && (
         <div style={{ background: "#e3f2fd", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#1565c0" }}>
           🛡️ <strong>Modo Admin:</strong> Continúa en tu sucursal, vende en una libre o libera las ocupadas.
@@ -134,8 +136,9 @@ export default function PuntoVentaScreen({
         </div>
       ) : (
         sucursales.map((s) => {
-          const esMia = esAdmin && s.ocupada && s.usuarioId === usuarioId;
+          const esMia        = esAdmin && s.ocupada && s.usuarioId === usuarioId;
           const ocupadaPorOtro = s.ocupada && !esMia;
+          const puedeAbrir   = !s.ocupada && (!esAdmin || !tengoSucursalActiva);
 
           return (
             <div
@@ -145,11 +148,11 @@ export default function PuntoVentaScreen({
                 border: `2px solid ${esMia ? colors.primary : ocupadaPorOtro ? "#e0e0e0" : colors.border}`,
                 background: esMia ? colors.primaryLight : ocupadaPorOtro ? "#f9f9f9" : colors.white,
                 overflow: "hidden",
-                boxShadow: ocupadaPorOtro ? "none" : "0 1px 4px rgba(0,0,0,0.08)",
+                boxShadow: ocupadaPorOtro ? "none" : "0 2px 8px rgba(0,0,0,0.06)",
                 position: "relative",
               }}
             >
-              {/* Marca de agua EN USO para sucursales de otros */}
+              {/* Marca de agua EN USO */}
               {ocupadaPorOtro && (
                 <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
                   <span style={{ fontWeight: "bold", color: colors.danger, opacity: 0.12, transform: "rotate(-20deg)", fontSize: "28px", letterSpacing: 2, textTransform: "uppercase", whiteSpace: "nowrap" }}>
@@ -158,9 +161,9 @@ export default function PuntoVentaScreen({
                 </div>
               )}
 
-              {/* Info sucursal */}
-              <div style={{ padding: "16px 18px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ padding: "14px 16px" }}>
+                {/* Info */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
                     <div style={{ fontWeight: "bold", color: esMia ? colors.primary : colors.textPrimary, fontSize: 15 }}>
                       {esMia ? "⭐ " : ""}{s.codigo} - {s.nombre}
@@ -168,32 +171,51 @@ export default function PuntoVentaScreen({
                     <div style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>📍 {s.ciudad}</div>
                     {s.ocupada && s.cajeroActivo && (
                       <div style={{ fontSize: 12, marginTop: 4, fontWeight: "bold", color: esMia ? colors.primary : colors.danger }}>
-                        {esMia ? "✅ Tu sucursal activa" : `🔒 En uso por: ${s.cajeroActivo}`}
+                        🔒 En uso por: {s.cajeroActivo}
+                      </div>
+                    )}
+                    {/* Sucursal libre con admin que ya tiene sucursal */}
+                    {!s.ocupada && esAdmin && tengoSucursalActiva && (
+                      <div style={{ fontSize: 12, marginTop: 4, color: colors.textMuted }}>
+                        Debes cerrar tu caja activa primero
                       </div>
                     )}
                   </div>
+
+                  {/* Badge estado */}
                   <div>
                     {ocupadaPorOtro && (
-                      <span style={{ fontSize: 11, fontWeight: "bold", padding: "4px 10px", borderRadius: 20, background: "#fdecea", color: colors.danger }}>
+                      <span style={{ fontSize: 11, fontWeight: "bold", padding: "4px 12px", borderRadius: 20, background: "#fdecea", color: colors.danger }}>
                         OCUPADA
                       </span>
                     )}
                     {esMia && (
-                      <span style={{ fontSize: 11, fontWeight: "bold", padding: "4px 10px", borderRadius: 20, background: colors.primaryLight, color: colors.primary }}>
+                      <span style={{ fontSize: 11, fontWeight: "bold", padding: "4px 12px", borderRadius: 20, background: colors.primaryLight, color: colors.primary }}>
                         MI SUCURSAL
+                      </span>
+                    )}
+                    {!s.ocupada && (
+                      <span style={{ fontSize: 11, fontWeight: "bold", padding: "4px 12px", borderRadius: 20, background: "#e8f5e9", color: colors.primary }}>
+                        LIBRE
                       </span>
                     )}
                   </div>
                 </div>
 
                 {/* Botones de acción */}
-                <div style={{ display: "flex", gap: 8, marginTop: 12, justifyContent: "flex-end" }}>
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
 
-                  {/* Sucursal libre → Abrir caja */}
+                  {/* Sucursal libre → Abrir caja (solo si no tengo otra activa) */}
                   {!s.ocupada && (
                     <button
-                      onClick={() => onSeleccionar(s.id, `${s.codigo} - ${s.nombre}`)}
-                      style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: colors.primary, color: "white", fontWeight: "bold", fontSize: 13, cursor: "pointer" }}
+                      onClick={() => puedeAbrir && onSeleccionar(s.id, `${s.codigo} - ${s.nombre}`)}
+                      disabled={!puedeAbrir}
+                      style={{
+                        padding: "8px 16px", borderRadius: 20, border: "none",
+                        background: puedeAbrir ? colors.primary : "#ccc",
+                        color: "white", fontWeight: "bold", fontSize: 12,
+                        cursor: puedeAbrir ? "pointer" : "not-allowed",
+                      }}
                     >
                       🧾 Abrir caja aquí
                     </button>
@@ -203,20 +225,25 @@ export default function PuntoVentaScreen({
                   {esMia && (
                     <button
                       onClick={() => onContinuar(s.id, `${s.codigo} - ${s.nombre}`, s.sesionId!)}
-                      style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: colors.primary, color: "white", fontWeight: "bold", fontSize: 13, cursor: "pointer" }}
+                      style={{ padding: "8px 16px", borderRadius: 20, border: "none", background: colors.primary, color: "white", fontWeight: "bold", fontSize: 12, cursor: "pointer" }}
                     >
                       ▶️ Continuar vendiendo
                     </button>
                   )}
 
-                  {/* Admin puede liberar cualquier sucursal ocupada */}
+                  {/* Liberar — solo admin en sucursales ocupadas */}
                   {esAdmin && s.ocupada && (
                     <button
                       onClick={() => setConfirmar(s)}
-                      style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#fdecea", color: colors.danger, fontWeight: "bold", fontSize: 13, cursor: "pointer" }}
+                      style={{ padding: "8px 16px", borderRadius: 20, border: "none", background: "#fdecea", color: colors.danger, fontWeight: "bold", fontSize: 12, cursor: "pointer" }}
                     >
                       🔓 Liberar
                     </button>
+                  )}
+
+                  {/* Cajero normal en sucursal libre */}
+                  {!esAdmin && !s.ocupada && (
+                    <span style={{ color: colors.textMuted, fontSize: 20, alignSelf: "center" }}>›</span>
                   )}
                 </div>
               </div>
