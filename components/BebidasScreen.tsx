@@ -27,7 +27,6 @@ export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
   const cargar = async () => {
     setCargando(true);
 
-    // 1. Traer bebidas
     const { data: productos } = await supabase
       .from("productos")
       .select("*")
@@ -37,18 +36,15 @@ export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
     const bebidasData = productos ?? [];
     setBebidas(bebidasData);
 
-    // 2. Traer recetas
     const { data: recetas } = await supabase
       .from("recetas")
       .select("producto_id, costo_total");
 
-    // 3. Agrupar costos
     const mapaCostos: Record<number, number> = {};
 
     (recetas ?? []).forEach((r: any) => {
       const id = r.producto_id;
       const costo = Number(r.costo_total || 0);
-
       mapaCostos[id] = (mapaCostos[id] || 0) + costo;
     });
 
@@ -75,7 +71,6 @@ export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
     <section>
       <Header titulo="Bebidas" onBack={onBack} />
 
-      {/* Toggle */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <button
           onClick={() => setVerInhabilitadas(false)}
@@ -116,14 +111,11 @@ export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
         </button>
       )}
 
-      {/* Lista */}
       {cargando ? (
         <p style={{ textAlign: "center" }}>Cargando...</p>
       ) : bebidas.length === 0 ? (
         <p style={{ textAlign: "center", color: colors.textMuted }}>
-          {verInhabilitadas
-            ? "No hay bebidas inhabilitadas."
-            : "No hay bebidas activas."}
+          {verInhabilitadas ? "No hay bebidas inhabilitadas." : "No hay bebidas activas."}
         </p>
       ) : (
         bebidas.map((b) => {
@@ -133,35 +125,54 @@ export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
           return (
             <div key={b.id} style={{ ...cardStyle, marginBottom: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                
-                <img
-                  src={b.imagen_url || ""}
-                  alt=""
+                <div
                   style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 10,
-                    objectFit: "cover",
-                    background: "#eee",
+                    width: 78,
+                    height: 96,
+                    borderRadius: 12,
+                    background: "#fff",
+                    border: `1px solid ${colors.border}`,
+                    overflow: "hidden",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
                   }}
-                />
+                >
+                  {b.imagen_url ? (
+                    <img
+                      src={b.imagen_url}
+                      alt={b.nombre}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        padding: 4,
+                        display: "block",
+                      }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: 34 }}>{b.emoji || "🍹"}</span>
+                  )}
+                </div>
 
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: "bold", fontSize: 15 }}>
-                    {b.nombre}
-                  </div>
+                  <div style={{ fontWeight: "bold", fontSize: 15 }}>{b.nombre}</div>
 
                   <div style={{ color: colors.primary, fontWeight: "bold" }}>
                     L {fmt(b.precio)}
                   </div>
 
-                  {/* 🔥 COSTO */}
                   <div style={{ fontSize: 12, color: colors.textMuted }}>
                     Costo: L {fmt(costo)}
                   </div>
 
-                  {/* 🔥 UTILIDAD */}
-                  <div style={{ fontSize: 12, color: utilidad >= 0 ? colors.primary : colors.danger }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: utilidad >= 0 ? colors.primary : colors.danger,
+                    }}
+                  >
                     Utilidad: L {fmt(utilidad)}
                   </div>
 
