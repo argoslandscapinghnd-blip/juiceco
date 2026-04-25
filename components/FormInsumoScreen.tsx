@@ -110,12 +110,14 @@ export default function FormInsumoScreen({ insumoEditar, onGuardar, onBack }: Pr
           Costo por {unidadSelec ? `${unidadSelec.nombre.toLowerCase()} (${unidadSelec.abreviatura})` : "unidad"} (L.)
         </label>
         <input
-          placeholder="0.00"
-          value={costo}
-          onChange={(e) => setCosto(e.target.value)}
-          type="number" min="0"
-          style={{ ...inputStyle, fontSize: 20, fontWeight: "bold" }}
-        />
+  placeholder="0.000000"
+  value={costo}
+  onChange={(e) => setCosto(e.target.value)}
+  type="number"
+  min="0"
+  step="0.000001"
+  style={{ ...inputStyle, fontSize: 18, fontWeight: "bold" }}
+/>
 
         {/* Preview */}
         {costo && parseFloat(costo) > 0 && unidad && (
