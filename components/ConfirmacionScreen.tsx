@@ -15,6 +15,8 @@ interface Props {
   sesionCajaId:   number;
   sucursalId:     number;
   usuarioId:      string;
+  usuarioNombre:  string;
+  usuarioNombre:  string;
   conFactura:     boolean;
   datosFactura?:  DatosFactura;
   onNuevaVenta:   () => void;
@@ -30,7 +32,7 @@ const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 
 export default function ConfirmacionScreen({
   total, metodo, montoRecibido, carrito,
   sesionCajaId, sucursalId, usuarioId,
-  conFactura, datosFactura,
+  usuarioNombre, conFactura, datosFactura,
   onNuevaVenta,
 }: Props) {
   const [guardado,      setGuardado]      = useState(false);
@@ -140,6 +142,7 @@ export default function ConfirmacionScreen({
         <div class="center">
           <div class="logo">🍋 JUICE CO.</div>
           <p style="font-size:11px;margin-top:2px">${sucursalNombre}</p>
+          <p style="font-size:11px">Cajero: ${usuarioNombre}</p>
           <p style="font-size:11px">${fecha}</p>
           <p style="font-size:11px">Venta #${ventaEnSesion} del turno</p>
         </div>

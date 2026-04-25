@@ -182,7 +182,7 @@ export default function Home() {
         {pantalla === "confirmacion" && (
           <ConfirmacionScreen total={totalCarrito} metodo={metodoPago} montoRecibido={montoRecibido}
             carrito={carrito} sesionCajaId={sesionCajaId} sucursalId={sucursalId}
-            usuarioId={usuarioActual?.id ?? ""} conFactura={conFactura} datosFactura={datosFactura}
+            usuarioId={usuarioActual?.id ?? ""} usuarioNombre={usuarioActual?.nombre ?? ""} conFactura={conFactura} datosFactura={datosFactura}
             onNuevaVenta={nuevaVenta} onImprimir={() => alert("🖨️ Enviando a impresora...")}
           />
         )}
