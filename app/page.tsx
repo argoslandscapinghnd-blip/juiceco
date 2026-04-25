@@ -25,6 +25,7 @@ import FormBebidaScreen   from "@/components/FormBebidaScreen";
 import UnidadesScreen     from "@/components/UnidadesScreen";
 import InsumosScreen      from "@/components/InsumosScreen";
 import FormInsumoScreen   from "@/components/FormInsumoScreen";
+import DashboardScreen    from "@/components/DashboardScreen";
 
 export default function Home() {
   const [pantalla,       setPantalla]       = useState<Pantalla>("login");
@@ -208,7 +209,7 @@ export default function Home() {
             onUsuarios={() => setPantalla("admin_usuarios")}
             onSucursales={() => setPantalla("admin_sucursales")}
             onMaestros={() => setPantalla("admin_maestros")}
-            onReportes={() => alert("Próximamente")}
+            onReportes={() => setPantalla("admin_dashboard")}
             onModoCajero={() => setPantalla("punto")}
             onCerrarSesion={() => { setUsuarioActual(null); setPantalla("login"); }}
           />
@@ -239,6 +240,9 @@ export default function Home() {
         )}
         {pantalla === "admin_insumos" && (
           <InsumosScreen onNuevo={() => { setInsumoEditar(undefined); setPantalla("admin_nuevo_insumo"); }} onEditar={(i) => { setInsumoEditar(i); setPantalla("admin_editar_insumo"); }} onBack={() => setPantalla("admin_maestros")} />
+        )}
+        {pantalla === "admin_dashboard" && (
+          <DashboardScreen onBack={() => setPantalla("admin")} />
         )}
         {(pantalla === "admin_nuevo_insumo" || pantalla === "admin_editar_insumo") && (
           <FormInsumoScreen insumoEditar={insumoEditar} onGuardar={() => { setInsumoEditar(undefined); setPantalla("admin_insumos"); }} onBack={() => setPantalla("admin_insumos")} />

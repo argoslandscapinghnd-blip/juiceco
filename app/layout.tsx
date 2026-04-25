@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   description: "Sistema de punto de venta Juice Co.",
 };
 
-const APP_VERSION = "v1.1.0";
+const APP_VERSION = "v2.0.0";
 
 export default function RootLayout({
   children,

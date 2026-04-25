@@ -16,7 +16,7 @@ const modulos = [
   { emoji: "👥", titulo: "Usuarios",   desc: "Crear, editar e inhabilitar usuarios",  key: "usuarios"   },
   { emoji: "🏪", titulo: "Sucursales", desc: "Crear, editar e inhabilitar sucursales", key: "sucursales" },
   { emoji: "📚", titulo: "Maestros",   desc: "Bebidas, unidades, insumos y recetas",   key: "maestros"   },
-  { emoji: "📊", titulo: "Reportes",   desc: "Ventas, caja y dashboard",               key: "reportes"   },
+  { emoji: "📊", titulo: "Dashboard",  desc: "Ventas, cajeros, productos y métodos",    key: "reportes"   },
 ];
 
 export default function AdminMenuScreen({
