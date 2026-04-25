@@ -1,3 +1,7 @@
+// ─────────────────────────────────────────────
+//  JUICE CO. — Tipos Compartidos
+// ─────────────────────────────────────────────
+
 export type Pantalla =
   | "login"
   | "punto"
@@ -11,7 +15,10 @@ export type Pantalla =
   | "admin"
   | "admin_usuarios"
   | "admin_nuevo_usuario"
-  | "admin_editar_usuario";
+  | "admin_editar_usuario"
+  | "admin_sucursales"
+  | "admin_nueva_sucursal"
+  | "admin_editar_sucursal";
 
 export type ItemCarrito = {
   nombre: string;
@@ -37,6 +44,14 @@ export type Usuario = {
   telefono:  string;
   rol:       Rol;
   activo:    boolean;
+};
+
+export type Sucursal = {
+  id:       number;
+  codigo:   string;
+  nombre:   string;
+  ciudad:   string;
+  activo:   boolean;
 };
 
 export const PRECIO_UNITARIO = 50;

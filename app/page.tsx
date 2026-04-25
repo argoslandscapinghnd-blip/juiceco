@@ -6,7 +6,7 @@ import { useState } from "react";
 import { colors } from "@/components/ui/styles";
 import {
   Pantalla, ItemCarrito, DatosFactura, MetodoPago,
-  PRECIO_UNITARIO, Usuario,
+  PRECIO_UNITARIO, Usuario, Sucursal,
 } from "@/components/ui/types";
 
 import LoginScreen        from "@/components/LoginScreen";
@@ -21,6 +21,8 @@ import ConfirmacionScreen from "@/components/ConfirmacionScreen";
 import AdminMenuScreen    from "@/components/AdminMenuScreen";
 import UsuariosScreen     from "@/components/UsuariosScreen";
 import FormUsuarioScreen  from "@/components/FormUsuarioScreen";
+import SucursalesScreen   from "@/components/SucursalesScreen";
+import FormSucursalScreen from "@/components/FormSucursalScreen";
 
 export default function Home() {
   // ── Sesión ──
@@ -36,18 +38,17 @@ export default function Home() {
   const [metodoPago,    setMetodoPago]    = useState<MetodoPago>("efectivo");
   const [montoRecibido, setMontoRecibido] = useState<number | undefined>();
 
-  // ── Usuarios ──
-  const [usuarioEditar, setUsuarioEditar] = useState<Usuario | undefined>();
+  // ── Admin ──
+  const [usuarioEditar,  setUsuarioEditar]  = useState<Usuario | undefined>();
+  const [sucursalEditar, setSucursalEditar] = useState<Sucursal | undefined>();
 
   const totalCarrito = carrito.reduce((s, i) => s + i.cantidad * i.precio, 0);
 
-  // ── Login desde Supabase ──
   const handleLogin = (u: Usuario) => {
     setUsuarioActual(u);
     setPantalla(u.rol === "administrador" ? "admin" : "punto");
   };
 
-  // ── Carrito helpers ──
   const agregarAlCarrito = (cantidad: number) => {
     if (!productoActual) return;
     setCarrito((prev) => {
@@ -139,12 +140,15 @@ export default function Home() {
           <AdminMenuScreen
             usuario={usuarioActual?.nombre ?? ""}
             onUsuarios={() => setPantalla("admin_usuarios")}
+            onSucursales={() => setPantalla("admin_sucursales")}
             onInventario={() => alert("Próximamente")}
             onReportes={() => alert("Próximamente")}
             onModoCajero={() => setPantalla("punto")}
             onCerrarSesion={() => { setUsuarioActual(null); setPantalla("login"); }}
           />
         )}
+
+        {/* Usuarios */}
         {pantalla === "admin_usuarios" && (
           <UsuariosScreen
             onNuevo={() => { setUsuarioEditar(undefined); setPantalla("admin_nuevo_usuario"); }}
@@ -157,6 +161,22 @@ export default function Home() {
             usuarioEditar={usuarioEditar}
             onGuardar={() => { setUsuarioEditar(undefined); setPantalla("admin_usuarios"); }}
             onBack={() => setPantalla("admin_usuarios")}
+          />
+        )}
+
+        {/* Sucursales */}
+        {pantalla === "admin_sucursales" && (
+          <SucursalesScreen
+            onNueva={() => { setSucursalEditar(undefined); setPantalla("admin_nueva_sucursal"); }}
+            onEditar={(s) => { setSucursalEditar(s); setPantalla("admin_editar_sucursal"); }}
+            onBack={() => setPantalla("admin")}
+          />
+        )}
+        {(pantalla === "admin_nueva_sucursal" || pantalla === "admin_editar_sucursal") && (
+          <FormSucursalScreen
+            sucursalEditar={sucursalEditar}
+            onGuardar={() => { setSucursalEditar(undefined); setPantalla("admin_sucursales"); }}
+            onBack={() => setPantalla("admin_sucursales")}
           />
         )}
 

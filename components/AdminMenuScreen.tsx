@@ -8,6 +8,7 @@ import { colors, cardStyle, btnPrimary } from "./ui/styles";
 interface Props {
   usuario:        string;
   onUsuarios:     () => void;
+  onSucursales:   () => void;
   onInventario:   () => void;
   onReportes:     () => void;
   onModoCajero:   () => void;
@@ -16,15 +17,17 @@ interface Props {
 
 const modulos = [
   { emoji: "👥", titulo: "Usuarios",   desc: "Crear, editar e inhabilitar usuarios",  key: "usuarios"   },
+  { emoji: "🏪", titulo: "Sucursales", desc: "Crear, editar e inhabilitar sucursales", key: "sucursales" },
   { emoji: "📦", titulo: "Inventario", desc: "Insumos, stock y movimientos",           key: "inventario" },
   { emoji: "📊", titulo: "Reportes",   desc: "Ventas, caja y dashboard",               key: "reportes"   },
 ];
 
 export default function AdminMenuScreen({
-  usuario, onUsuarios, onInventario, onReportes, onModoCajero, onCerrarSesion,
+  usuario, onUsuarios, onSucursales, onInventario, onReportes, onModoCajero, onCerrarSesion,
 }: Props) {
   const handlers: Record<string, () => void> = {
     usuarios:   onUsuarios,
+    sucursales: onSucursales,
     inventario: onInventario,
     reportes:   onReportes,
   };
@@ -50,12 +53,15 @@ export default function AdminMenuScreen({
       </div>
 
       {/* Botón modo cajero */}
-      <button style={{ ...btnPrimary, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }} onClick={onModoCajero}>
+      <button
+        style={{ ...btnPrimary, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}
+        onClick={onModoCajero}
+      >
         <span style={{ fontSize: 20 }}>🧾</span>
         <span>MODO CAJERO — Iniciar venta</span>
       </button>
 
-      {/* Módulos admin */}
+      {/* Módulos */}
       <div style={{ fontSize: 12, fontWeight: "bold", color: colors.textMuted, marginBottom: 10, letterSpacing: 1 }}>
         ADMINISTRACIÓN
       </div>
