@@ -27,7 +27,6 @@ const METODO_LABEL: Record<MetodoPago, string> = {
   transferencia: "Transferencia",
 };
 
-// Formatea número con comas
 const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function ConfirmacionScreen({
@@ -36,9 +35,10 @@ export default function ConfirmacionScreen({
   conFactura, datosFactura,
   onNuevaVenta, onImprimir,
 }: Props) {
-  const [guardado, setGuardado] = useState(false);
-  const [ventaId,  setVentaId]  = useState<number | null>(null);
-  const [error,    setError]    = useState("");
+  const [guardado,       setGuardado]       = useState(false);
+  const [ventaId,        setVentaId]        = useState<number | null>(null);
+  const [ventaEnSesion,  setVentaEnSesion]  = useState<number | null>(null);
+  const [error,          setError]          = useState("");
 
   const cambio = metodo === "efectivo" && montoRecibido
     ? Math.max(0, montoRecibido - total)
@@ -48,6 +48,7 @@ export default function ConfirmacionScreen({
 
   const guardarVenta = async () => {
     try {
+      // 1. Insertar venta
       const { data: venta, error: errVenta } = await supabase
         .from("ventas")
         .insert({
@@ -66,6 +67,7 @@ export default function ConfirmacionScreen({
 
       if (errVenta) throw errVenta;
 
+      // 2. Insertar items
       const { error: errItems } = await supabase
         .from("venta_items")
         .insert(carrito.map((item) => ({
@@ -78,7 +80,14 @@ export default function ConfirmacionScreen({
 
       if (errItems) throw errItems;
 
+      // 3. Contar cuántas ventas lleva esta sesión
+      const { count } = await supabase
+        .from("ventas")
+        .select("*", { count: "exact", head: true })
+        .eq("sesion_id", sesionCajaId);
+
       setVentaId(venta.id);
+      setVentaEnSesion(count ?? null);
       setGuardado(true);
     } catch (err: any) {
       setError("Error al guardar venta: " + err.message);
@@ -94,13 +103,21 @@ export default function ConfirmacionScreen({
           ✅
         </div>
 
-        <h2 style={{ color: colors.primary, fontSize: 22, marginTop: 0, marginBottom: 8 }}>
+        <h2 style={{ color: colors.primary, fontSize: 22, marginTop: 0, marginBottom: 4 }}>
           ¡Venta realizada!
         </h2>
 
-        {ventaId && (
-          <p style={{ color: colors.textMuted, fontSize: 13, marginBottom: 4 }}># Venta {ventaId}</p>
+        {/* Número de venta en el turno */}
+        {ventaEnSesion !== null && (
+          <div style={{ marginBottom: 20 }}>
+            <span style={{ fontSize: 13, color: colors.textMuted }}>Venta </span>
+            <span style={{ fontSize: 18, fontWeight: "bold", color: colors.primary }}>
+              #{ventaEnSesion}
+            </span>
+            <span style={{ fontSize: 13, color: colors.textMuted }}> del turno</span>
+          </div>
         )}
+
         {!guardado && (
           <p style={{ color: colors.textMuted, fontSize: 13, marginBottom: 20 }}>Guardando...</p>
         )}
@@ -118,7 +135,7 @@ export default function ConfirmacionScreen({
             />
           ))}
           <div style={{ borderTop: `2px solid ${colors.border}`, margin: "8px 0" }} />
-          <FilaResumen label="Total"  valor={`L ${fmt(total)}`}               bold />
+          <FilaResumen label="Total"  valor={`L ${fmt(total)}`} bold />
           <FilaResumen label="Pago"   valor={METODO_LABEL[metodo]} />
           {cambio !== null && (
             <FilaResumen label="Cambio" valor={`L ${fmt(cambio)}`} color={colors.primary} bold />
