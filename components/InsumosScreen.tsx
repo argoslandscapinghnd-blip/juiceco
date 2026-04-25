@@ -55,11 +55,15 @@ export default function InsumosScreen({ onNuevo, onEditar, onBack }: Props) {
     cargar();
   };
 
-  const fmt = (n: number) =>
-    Number(n || 0).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+  const fmt = (n: number) => {
+    const valor = Number(n || 0);
+
+    if (valor > 0 && valor < 0.01) {
+      return valor.toFixed(6);
+    }
+
+    return valor.toFixed(2);
+  };
 
   const filtrados = insumos.filter((i) => filtro === "todos" || i.tipo === filtro);
 
@@ -158,7 +162,9 @@ export default function InsumosScreen({ onNuevo, onEditar, onBack }: Props) {
 
                 <div style={{ fontSize: 13, color: colors.textMuted, marginBottom: 4 }}>
                   Unidad: <strong>{ins.unidad}</strong> · Costo:{" "}
-                  <strong style={{ color: colors.primary }}>L {fmt(ins.costo_unitario)}</strong>
+                  <strong style={{ color: colors.primary }}>
+                    L {fmt(ins.costo_unitario)}
+                  </strong>
                 </div>
 
                 <div style={{ display: "flex", gap: 6 }}>
