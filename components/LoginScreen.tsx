@@ -17,6 +17,7 @@ export default function LoginScreen({ onIngresar }: Props) {
   const [recordar,    setRecordar]    = useState(false);
   const [error,       setError]       = useState("");
   const [cargando,    setCargando]    = useState(false);
+  const [verPass,     setVerPass]     = useState(false);
 
   const usuarioRef  = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -86,15 +87,35 @@ export default function LoginScreen({ onIngresar }: Props) {
           autoCapitalize="none"
         />
 
-        <input
-          ref={passwordRef}
-          placeholder="🔒  Contraseña"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={inputStyle}
-          onKeyDown={(e) => e.key === "Enter" && handleIngresar()}
-        />
+        {/* Contraseña con ojito */}
+        <div style={{ position: "relative", marginBottom: 12 }}>
+          <input
+            ref={passwordRef}
+            placeholder="🔒  Contraseña"
+            type={verPass ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{ ...inputStyle, marginBottom: 0, paddingRight: 48 }}
+            onKeyDown={(e) => e.key === "Enter" && handleIngresar()}
+          />
+          <button
+            onClick={() => setVerPass(!verPass)}
+            style={{
+              position: "absolute",
+              right: 12,
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 20,
+              padding: 0,
+              lineHeight: 1,
+            }}
+          >
+            {verPass ? "🙈" : "👁️"}
+          </button>
+        </div>
 
         <label style={{ display: "flex", gap: 8, marginBottom: 20, alignItems: "center", cursor: "pointer" }}>
           <input
@@ -109,7 +130,11 @@ export default function LoginScreen({ onIngresar }: Props) {
           <p style={{ color: colors.danger, fontSize: 14, marginBottom: 12 }}>⚠️ {error}</p>
         )}
 
-        <button style={{ ...btnPrimary, opacity: cargando ? 0.7 : 1 }} onClick={handleIngresar} disabled={cargando}>
+        <button
+          style={{ ...btnPrimary, opacity: cargando ? 0.7 : 1 }}
+          onClick={handleIngresar}
+          disabled={cargando}
+        >
           {cargando ? "Verificando..." : "INGRESAR"}
         </button>
 
