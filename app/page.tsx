@@ -177,6 +177,7 @@ export default function Home() {
             onUsuarios={() => setPantalla("admin_usuarios")}
             onInventario={() => alert("Próximamente")}
             onReportes={() => alert("Próximamente")}
+            onModoCajero={() => setPantalla("punto")}
             onCerrarSesion={() => { setUsuarioActual(null); setPantalla("login"); }}
           />
         )}
