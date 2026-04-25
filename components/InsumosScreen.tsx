@@ -55,15 +55,8 @@ export default function InsumosScreen({ onNuevo, onEditar, onBack }: Props) {
     cargar();
   };
 
-  const fmt = (n: number) => {
-    const valor = Number(n || 0);
-
-    if (valor > 0 && valor < 0.01) {
-      return valor.toFixed(6);
-    }
-
-    return valor.toFixed(2);
-  };
+  const fmt = (n: number) =>
+  Number(n || 0).toFixed(6);
 
   const filtrados = insumos.filter((i) => filtro === "todos" || i.tipo === filtro);
 

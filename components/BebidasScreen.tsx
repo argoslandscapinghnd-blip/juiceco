@@ -16,6 +16,7 @@ interface Props {
 
 export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
   const [bebidas, setBebidas] = useState<Producto[]>([]);
+  const [costos, setCostos] = useState<Record<number, number>>({});
   const [cargando, setCargando] = useState(true);
   const [verInhabilitadas, setVerInhabilitadas] = useState(false);
 
@@ -26,25 +27,49 @@ export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
   const cargar = async () => {
     setCargando(true);
 
-    const { data, error } = await supabase
+    // 1. Traer bebidas
+    const { data: productos } = await supabase
       .from("productos")
       .select("*")
       .eq("activo", !verInhabilitadas)
       .order("nombre");
 
-    if (!error) setBebidas(data ?? []);
+    const bebidasData = productos ?? [];
+    setBebidas(bebidasData);
 
+    // 2. Traer recetas
+    const { data: recetas } = await supabase
+      .from("recetas")
+      .select("producto_id, costo_total");
+
+    // 3. Agrupar costos
+    const mapaCostos: Record<number, number> = {};
+
+    (recetas ?? []).forEach((r: any) => {
+      const id = r.producto_id;
+      const costo = Number(r.costo_total || 0);
+
+      mapaCostos[id] = (mapaCostos[id] || 0) + costo;
+    });
+
+    setCostos(mapaCostos);
     setCargando(false);
   };
 
   const toggleActivo = async (b: Producto) => {
-    const { error } = await supabase
+    await supabase
       .from("productos")
       .update({ activo: !b.activo })
       .eq("id", b.id);
 
-    if (!error) cargar();
+    cargar();
   };
+
+  const fmt = (n: number) =>
+    Number(n || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
 
   return (
     <section>
@@ -85,7 +110,6 @@ export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
         </button>
       </div>
 
-      {/* Nueva bebida */}
       {!verInhabilitadas && (
         <button style={{ ...btnPrimary, marginBottom: 14 }} onClick={onNuevo}>
           + NUEVA BEBIDA
@@ -102,70 +126,82 @@ export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
             : "No hay bebidas activas."}
         </p>
       ) : (
-        bebidas.map((b) => (
-          <div key={b.id} style={{ ...cardStyle, marginBottom: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              
-              {/* Imagen */}
-              <img
-                src={b.imagen_url || ""}
-                alt=""
-                style={{
-                  width: 50,
-                  height: 50,
-                  borderRadius: 10,
-                  objectFit: "cover",
-                  background: "#eee",
-                }}
-              />
+        bebidas.map((b) => {
+          const costo = costos[b.id] || 0;
+          const utilidad = Number(b.precio) - costo;
 
-              {/* Info */}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: "bold", fontSize: 15 }}>
-                  {b.nombre}
-                </div>
-
-                <div style={{ color: colors.primary, fontWeight: "bold" }}>
-                  L {Number(b.precio).toFixed(2)}
-                </div>
-
-                <span
+          return (
+            <div key={b.id} style={{ ...cardStyle, marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                
+                <img
+                  src={b.imagen_url || ""}
+                  alt=""
                   style={{
-                    fontSize: 12,
-                    padding: "2px 8px",
+                    width: 50,
+                    height: 50,
                     borderRadius: 10,
-                    background: b.activo ? "#e8f5e9" : "#fdecea",
-                    color: b.activo ? "#2e7d32" : "#c62828",
+                    objectFit: "cover",
+                    background: "#eee",
                   }}
-                >
-                  {b.activo ? "Activa" : "Inhabilitada"}
-                </span>
-              </div>
+                />
 
-              {/* Acciones */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {!verInhabilitadas && (
-                  <button onClick={() => onEditar(b)} style={btnEditar}>
-                    ✏️ Editar
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: "bold", fontSize: 15 }}>
+                    {b.nombre}
+                  </div>
+
+                  <div style={{ color: colors.primary, fontWeight: "bold" }}>
+                    L {fmt(b.precio)}
+                  </div>
+
+                  {/* 🔥 COSTO */}
+                  <div style={{ fontSize: 12, color: colors.textMuted }}>
+                    Costo: L {fmt(costo)}
+                  </div>
+
+                  {/* 🔥 UTILIDAD */}
+                  <div style={{ fontSize: 12, color: utilidad >= 0 ? colors.primary : colors.danger }}>
+                    Utilidad: L {fmt(utilidad)}
+                  </div>
+
+                  <span
+                    style={{
+                      fontSize: 12,
+                      padding: "2px 8px",
+                      borderRadius: 10,
+                      background: b.activo ? "#e8f5e9" : "#fdecea",
+                      color: b.activo ? "#2e7d32" : "#c62828",
+                      marginTop: 4,
+                      display: "inline-block",
+                    }}
+                  >
+                    {b.activo ? "Activa" : "Inhabilitada"}
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {!verInhabilitadas && (
+                    <button onClick={() => onEditar(b)} style={btnEditar}>
+                      ✏️ Editar
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => toggleActivo(b)}
+                    style={verInhabilitadas ? btnActivar : btnInhabilitar}
+                  >
+                    {verInhabilitadas ? "✔ Activar" : "🚫 Inhabilitar"}
                   </button>
-                )}
-
-                <button
-                  onClick={() => toggleActivo(b)}
-                  style={verInhabilitadas ? btnActivar : btnInhabilitar}
-                >
-                  {verInhabilitadas ? "✔ Activar" : "🚫 Inhabilitar"}
-                </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))
+          );
+        })
       )}
     </section>
   );
 }
-
-// ─────────── estilos ───────────
 
 const btnEditar: React.CSSProperties = {
   padding: "6px 10px",
