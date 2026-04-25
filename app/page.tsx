@@ -153,6 +153,8 @@ export default function Home() {
         {pantalla === "menu" && (
           <MenuScreen carrito={carrito} usuario={usuarioActual?.nombre ?? ""} sucursal={puntoNombre}
             onSeleccionarSabor={(nombre, precio) => { setProductoActual(nombre); setPrecioActual(precio); setPantalla("cantidad"); }}
+            esAdmin={esAdmin}
+            onVolverAdmin={esAdmin ? () => setPantalla("admin") : undefined}
             onVerCarrito={() => setPantalla("carrito")} onVerTurno={() => setPantalla("mi_turno")}
             onCerrarSesion={cerrarSesionCajero}
           />

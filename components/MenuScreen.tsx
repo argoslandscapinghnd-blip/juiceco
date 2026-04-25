@@ -13,15 +13,17 @@ interface Props {
   carrito:            ItemCarrito[];
   usuario:            string;
   sucursal:           string;
+  esAdmin?:           boolean;
   onSeleccionarSabor: (nombre: string, precio: number) => void;
   onVerCarrito:       () => void;
   onVerTurno:         () => void;
   onCerrarSesion:     () => void;
+  onVolverAdmin?:     () => void;
 }
 
 export default function MenuScreen({
-  carrito, usuario, sucursal,
-  onSeleccionarSabor, onVerCarrito, onVerTurno, onCerrarSesion,
+  carrito, usuario, sucursal, esAdmin,
+  onSeleccionarSabor, onVerCarrito, onVerTurno, onCerrarSesion, onVolverAdmin,
 }: Props) {
   const [bebidas,  setBebidas]  = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -51,6 +53,22 @@ export default function MenuScreen({
         )}
       </div>
 
+      {/* Botón volver al panel admin */}
+      {esAdmin && onVolverAdmin && (
+        <button
+          onClick={onVolverAdmin}
+          style={{
+            width: "100%", marginBottom: 12, padding: "10px 16px",
+            borderRadius: 10, border: `1px solid ${colors.border}`,
+            background: "#f5f5f5", cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 8,
+            fontSize: 13, fontWeight: "bold", color: colors.textSecondary,
+          }}
+        >
+          ← Volver al panel Admin
+        </button>
+      )}
+
       {cargando ? (
         <div style={{ textAlign: "center", color: colors.textMuted, padding: 40 }}>Cargando bebidas...</div>
       ) : bebidas.length === 0 ? (
@@ -71,25 +89,17 @@ export default function MenuScreen({
                 display: "flex", flexDirection: "column",
               }}
             >
-              {/* Imagen */}
               <div style={{ width: "100%", aspectRatio: "1/1", overflow: "hidden", background: "#f5f5f5" }}>
                 {b.imagen_url ? (
-                  <img
-                    src={b.imagen_url}
-                    alt={b.nombre}
-                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                  />
+                  <img src={b.imagen_url} alt={b.nombre} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                 ) : (
                   <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>
                     {b.emoji || "🍹"}
                   </div>
                 )}
               </div>
-              {/* Info */}
               <div style={{ padding: "10px 12px", textAlign: "center" }}>
-                <div style={{ fontWeight: "bold", fontSize: 13, color: colors.textPrimary, marginBottom: 2 }}>
-                  {b.nombre}
-                </div>
+                <div style={{ fontWeight: "bold", fontSize: 13, color: colors.textPrimary, marginBottom: 2 }}>{b.nombre}</div>
                 <div style={{ fontSize: 13, color: colors.primary, fontWeight: "bold" }}>
                   L {b.precio.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </div>
