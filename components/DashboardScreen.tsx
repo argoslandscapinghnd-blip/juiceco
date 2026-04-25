@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/supabase";
 
-interface KPI { totalVentas: number; numVentas: number; ticketPromedio: number; utilidadEstimada: number; unidades: number; }
+interface KPI { totalVentas: number; numVentas: number; ticketPromedio: number; utilidadEstimada: number; }
 interface VentaSucursal { sucursal_id: string; nombre: string; total: number; num_ventas: number; cajeros: string[]; }
 interface VentaCajero   { usuario_id: string; nombre: string; total: number; num_ventas: number; sucursales: string[]; }
 interface VentaProducto { nombre_producto: string; cantidad: number; subtotal: number; }
@@ -15,31 +15,51 @@ const endOfWeek   = (d: Date) => { const c = new Date(d); c.setDate(c.getDate() 
 
 const COLORS = ["#16a34a","#7c3aed","#ea580c","#0284c7","#dc2626","#ca8a04","#0891b2","#9333ea"];
 
+const Pill = ({ label }: { label: string }) => (
+  <span style={{ display: "inline-block", fontSize: 10, fontWeight: 600, color: "#166534", background: "#dcfce7", borderRadius: 999, padding: "1px 7px", marginRight: 3, marginTop: 2, letterSpacing: 0.2 }}>
+    {label}
+  </span>
+);
+
+const Bar = ({ value, max }: { value: number; max: number }) => (
+  <div style={{ flex: 1, height: 6, background: "#e5e7eb", borderRadius: 999, overflow: "hidden", margin: "0 10px" }}>
+    <div style={{ width: `${max > 0 ? (value / max) * 100 : 0}%`, height: "100%", background: "#16a34a", borderRadius: 999, transition: "width 0.5s ease" }} />
+  </div>
+);
+
+const KpiCard = ({ icon, label, value, sub }: { icon: string; label: string; value: string; sub?: string }) => (
+  <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14, padding: "14px 16px", flex: 1, minWidth: 130 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+      <span style={{ background: "#dcfce7", borderRadius: 8, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{icon}</span>
+      <span style={{ fontSize: 10, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</span>
+    </div>
+    <div style={{ fontSize: 20, fontWeight: 800, color: "#16a34a", lineHeight: 1.1 }}>{value}</div>
+    {sub && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 3 }}>{sub}</div>}
+  </div>
+);
+
 // ── Pie Chart SVG ──
 function PieChart({ data, total }: { data: VentaProducto[]; total: number }) {
-  if (total === 0) return <div style={{ textAlign: "center", color: "#9ca3af", padding: 20 }}>Sin datos</div>;
-
+  if (total === 0 || data.length === 0) return <EmptyRow />;
   let cumAngle = -Math.PI / 2;
-  const cx = 80, cy = 80, r = 70;
-
+  const cx = 70, cy = 70, r = 60;
   const slices = data.slice(0, 6).map((p, i) => {
     const pct   = p.cantidad / total;
     const angle = pct * 2 * Math.PI;
-    const x1    = cx + r * Math.cos(cumAngle);
-    const y1    = cy + r * Math.sin(cumAngle);
-    cumAngle   += angle;
-    const x2    = cx + r * Math.cos(cumAngle);
-    const y2    = cy + r * Math.sin(cumAngle);
+    const x1 = cx + r * Math.cos(cumAngle);
+    const y1 = cy + r * Math.sin(cumAngle);
+    cumAngle += angle;
+    const x2 = cx + r * Math.cos(cumAngle);
+    const y2 = cy + r * Math.sin(cumAngle);
     const large = angle > Math.PI ? 1 : 0;
     return { path: `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`, color: COLORS[i % COLORS.length], pct, ...p };
   });
-
   return (
-    <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-      <svg width={160} height={160} viewBox="0 0 160 160">
+    <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+      <svg width={140} height={140} viewBox="0 0 140 140" style={{ flexShrink: 0 }}>
         {slices.map((s, i) => <path key={i} d={s.path} fill={s.color} stroke="#fff" strokeWidth={2} />)}
       </svg>
-      <div style={{ flex: 1, minWidth: 140 }}>
+      <div style={{ flex: 1, minWidth: 130 }}>
         {slices.map((s, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
             <div style={{ width: 10, height: 10, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
@@ -58,15 +78,16 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
   const today    = new Date();
   const todayStr = toDateStr(today);
 
-  const [tab,        setTab]        = useState<"hoy" | "semana" | "mes">("hoy");
-  const [weekFrom,   setWeekFrom]   = useState(toDateStr(startOfWeek(today)));
-  const [weekTo,     setWeekTo]     = useState(toDateStr(endOfWeek(today)));
-  const [monthValue, setMonthValue] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`);
-  const [sucFiltro,  setSucFiltro]  = useState<string>("todas");
+  const [tab,         setTab]         = useState<"hoy" | "semana" | "mes">("hoy");
+  const [weekFrom,    setWeekFrom]    = useState(toDateStr(startOfWeek(today)));
+  const [weekTo,      setWeekTo]      = useState(toDateStr(endOfWeek(today)));
+  const [monthValue,  setMonthValue]  = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`);
+  const [sucFiltro,   setSucFiltro]   = useState("todas");
+  const [cajFiltro,   setCajFiltro]   = useState("todos");
   const [sucOpciones, setSucOpciones] = useState<{ id: string; nombre: string }[]>([]);
+  const [cajOpciones, setCajOpciones] = useState<{ id: string; nombre: string }[]>([]);
 
   const [kpi,        setKpi]        = useState<KPI | null>(null);
-  const [kpiAyer,    setKpiAyer]    = useState<KPI | null>(null);
   const [sucursales, setSucursales] = useState<VentaSucursal[]>([]);
   const [cajeros,    setCajeros]    = useState<VentaCajero[]>([]);
   const [productos,  setProductos]  = useState<VentaProducto[]>([]);
@@ -81,65 +102,50 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
     return { from: `${y}-${String(m).padStart(2, "0")}-01`, to: toDateStr(new Date(y, m, 0)) };
   }, [tab, todayStr, weekFrom, weekTo, monthValue]);
 
-  const calcKPI = (ventas: any[], items: any[]): KPI => {
-    const totalVentas      = ventas.reduce((s, v) => s + (v.total || 0), 0);
-    const numVentas        = ventas.length;
-    const ticketPromedio   = numVentas > 0 ? totalVentas / numVentas : 0;
-    const utilidadEstimada = totalVentas * 0.36;
-    const ventaIds         = new Set(ventas.map(v => v.id));
-    const unidades         = items.filter((i: any) => ventaIds.has(i.venta_id)).reduce((s: number, i: any) => s + (i.cantidad || 0), 0);
-    return { totalVentas, numVentas, ticketPromedio, utilidadEstimada, unidades };
-  };
-
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // Cargar sucursales para filtro
+      const { from, to } = getRange();
+      const fromTs = `${from}T00:00:00`;
+      const toTs   = `${to}T23:59:59`;
+
       const { data: sucData } = await supabase.from("sucursales").select("id, nombre, codigo");
-      const { data: usrData  } = await supabase.from("usuarios").select("id, nombre");
-      setSucOpciones((sucData || []).map((s: any) => ({ id: String(s.id), nombre: `${s.codigo} - ${s.nombre}` })));
+      const { data: usrData } = await supabase.from("usuarios").select("id, nombre");
 
       const sucMap: Record<string, string> = {};
       (sucData || []).forEach((s: any) => { sucMap[String(s.id)] = `${s.codigo} - ${s.nombre}`; });
       const usrMap: Record<string, string> = {};
       (usrData || []).forEach((u: any) => { usrMap[u.id] = u.nombre; });
 
-      const { from, to } = getRange();
-      const fromTs = `${from}T00:00:00`;
-      const toTs   = `${to}T23:59:59`;
+      setSucOpciones((sucData || []).map((s: any) => ({ id: String(s.id), nombre: `${s.codigo} - ${s.nombre}` })));
+      setCajOpciones((usrData || []).map((u: any) => ({ id: u.id, nombre: u.nombre })));
 
-      // Ayer para comparativo
-      const ayer     = new Date(today); ayer.setDate(ayer.getDate() - 1);
-      const ayerStr  = toDateStr(ayer);
-      const ayerFrom = `${ayerStr}T00:00:00`;
-      const ayerTo   = `${ayerStr}T23:59:59`;
+      let q = supabase.from("ventas").select("id, total, metodo_pago, sucursal_id, usuario_id, creada_en")
+        .gte("creada_en", fromTs).lte("creada_en", toTs);
+      if (sucFiltro !== "todas") q = q.eq("sucursal_id", sucFiltro);
+      if (cajFiltro !== "todos") q = q.eq("usuario_id", cajFiltro);
 
-      let ventasQ = supabase.from("ventas").select("id, total, metodo_pago, sucursal_id, usuario_id, creada_en").gte("creada_en", fromTs).lte("creada_en", toTs);
-      if (sucFiltro !== "todas") ventasQ = ventasQ.eq("sucursal_id", sucFiltro);
+      const { data: ventas } = await q;
 
-      const { data: ventas } = await ventasQ;
-      const { data: ventasAyer } = await supabase.from("ventas").select("id, total, metodo_pago, sucursal_id, usuario_id, creada_en").gte("creada_en", ayerFrom).lte("creada_en", ayerTo);
-      const { data: allItems }   = await supabase.from("venta_items").select("venta_id, nombre_producto, cantidad, subtotal");
-
-      const v  = ventas || [];
-      const va = ventasAyer || [];
-      const it = allItems || [];
-
-      setKpi(calcKPI(v, it));
-      setKpiAyer(calcKPI(va, it));
-
-      if (v.length === 0) {
+      if (!ventas || ventas.length === 0) {
+        setKpi({ totalVentas: 0, numVentas: 0, ticketPromedio: 0, utilidadEstimada: 0 });
         setSucursales([]); setCajeros([]); setProductos([]); setMetodos([]);
         setLoading(false); return;
       }
 
+      const totalVentas      = ventas.reduce((s, v) => s + (v.total || 0), 0);
+      const numVentas        = ventas.length;
+      const ticketPromedio   = numVentas > 0 ? totalVentas / numVentas : 0;
+      const utilidadEstimada = totalVentas * 0.36;
+      setKpi({ totalVentas, numVentas, ticketPromedio, utilidadEstimada });
+
       // Sucursales
       const sucAgg: Record<string, { total: number; num: number; usuarios: Set<string> }> = {};
-      v.forEach((x: any) => {
-        const sid = String(x.sucursal_id);
+      ventas.forEach((v) => {
+        const sid = String(v.sucursal_id);
         if (!sucAgg[sid]) sucAgg[sid] = { total: 0, num: 0, usuarios: new Set() };
-        sucAgg[sid].total += x.total || 0; sucAgg[sid].num += 1;
-        if (x.usuario_id) sucAgg[sid].usuarios.add(x.usuario_id);
+        sucAgg[sid].total += v.total || 0; sucAgg[sid].num += 1;
+        if (v.usuario_id) sucAgg[sid].usuarios.add(v.usuario_id);
       });
       setSucursales(Object.entries(sucAgg).map(([id, d]) => ({
         sucursal_id: id, nombre: sucMap[id] || id, total: d.total, num_ventas: d.num,
@@ -147,108 +153,108 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
       })).sort((a, b) => b.total - a.total));
 
       // Cajeros
-      const usrAgg: Record<string, { total: number; num: number; suc: Set<string> }> = {};
-      v.forEach((x: any) => {
-        if (!x.usuario_id) return;
-        if (!usrAgg[x.usuario_id]) usrAgg[x.usuario_id] = { total: 0, num: 0, suc: new Set() };
-        usrAgg[x.usuario_id].total += x.total || 0; usrAgg[x.usuario_id].num += 1;
-        if (x.sucursal_id) usrAgg[x.usuario_id].suc.add(String(x.sucursal_id));
+      const usrAgg: Record<string, { total: number; num: number; sucursales: Set<string> }> = {};
+      ventas.forEach((v) => {
+        if (!v.usuario_id) return;
+        if (!usrAgg[v.usuario_id]) usrAgg[v.usuario_id] = { total: 0, num: 0, sucursales: new Set() };
+        usrAgg[v.usuario_id].total += v.total || 0; usrAgg[v.usuario_id].num += 1;
+        if (v.sucursal_id) usrAgg[v.usuario_id].sucursales.add(String(v.sucursal_id));
       });
       setCajeros(Object.entries(usrAgg).map(([id, d]) => ({
         usuario_id: id, nombre: usrMap[id] || id, total: d.total, num_ventas: d.num,
-        sucursales: [...d.suc].map(sid => sucMap[sid] || sid),
+        sucursales: [...d.sucursales].map(sid => sucMap[sid] || sid),
       })).sort((a, b) => b.total - a.total));
 
       // Productos
-      const ventaIds = new Set(v.map((x: any) => x.id));
+      const ventaIds = ventas.map(v => v.id);
+      const { data: items } = await supabase.from("venta_items")
+        .select("nombre_producto, cantidad, subtotal").in("venta_id", ventaIds);
       const prodAgg: Record<string, { cantidad: number; subtotal: number }> = {};
-      it.filter((i: any) => ventaIds.has(i.venta_id)).forEach((i: any) => {
+      (items || []).forEach((i: any) => {
         if (!prodAgg[i.nombre_producto]) prodAgg[i.nombre_producto] = { cantidad: 0, subtotal: 0 };
         prodAgg[i.nombre_producto].cantidad += i.cantidad || 0;
         prodAgg[i.nombre_producto].subtotal += i.subtotal || 0;
       });
-      setProductos(Object.entries(prodAgg).map(([nombre_producto, d]) => ({ nombre_producto, ...d })).sort((a, b) => b.cantidad - a.cantidad).slice(0, 8));
+      setProductos(Object.entries(prodAgg).map(([nombre_producto, d]) => ({ nombre_producto, ...d }))
+        .sort((a, b) => b.cantidad - a.cantidad).slice(0, 8));
 
       // Métodos
       const metAgg: Record<string, { total: number; num_ventas: number }> = {};
-      v.forEach((x: any) => {
-        const m = x.metodo_pago || "Otro";
+      ventas.forEach((v) => {
+        const m = v.metodo_pago || "Otro";
         if (!metAgg[m]) metAgg[m] = { total: 0, num_ventas: 0 };
-        metAgg[m].total += x.total || 0; metAgg[m].num_ventas += 1;
+        metAgg[m].total += v.total || 0; metAgg[m].num_ventas += 1;
       });
-      setMetodos(Object.entries(metAgg).map(([metodo_pago, d]) => ({ metodo_pago, ...d })).sort((a, b) => b.total - a.total));
+      setMetodos(Object.entries(metAgg).map(([metodo_pago, d]) => ({ metodo_pago, ...d }))
+        .sort((a, b) => b.total - a.total));
 
       setLastUpdate(new Date());
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("Dashboard error:", err); }
     finally { setLoading(false); }
-  }, [getRange, sucFiltro]);
+  }, [getRange, sucFiltro, cajFiltro]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { const i = setInterval(fetchData, 60_000); return () => clearInterval(i); }, [fetchData]);
 
   const maxSuc  = sucursales[0]?.total   || 1;
   const maxProd = productos[0]?.cantidad || 1;
+  const maxMet  = metodos[0]?.total      || 1;
+  const medals  = ["🥇", "🥈", "🥉"];
   const totalUnidades = productos.reduce((s, p) => s + p.cantidad, 0);
 
-  const delta = (curr: number, prev: number) => {
-    if (!prev) return null;
-    const pct = ((curr - prev) / prev) * 100;
-    return { pct: pct.toFixed(1), positive: pct >= 0 };
-  };
-
   const periodLabel = () => {
-    if (tab === "hoy")    return todayStr;
+    if (tab === "hoy")    return `Hoy · ${todayStr}`;
     if (tab === "semana") return `${weekFrom} → ${weekTo}`;
     return monthValue;
   };
 
   return (
     <div style={{ minHeight: "100vh", background: "#f0fdf4", fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 40 }}>
-
       {/* Header */}
       <div style={{ background: "#14532d", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 52, position: "sticky", top: 0, zIndex: 100 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", padding: 4 }}>←</button>
-        <span style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Dashboard</span>
-        <button onClick={fetchData} disabled={loading} style={{ background: "none", border: "none", color: "#86efac", fontSize: 18, cursor: "pointer", opacity: loading ? 0.5 : 1 }}>🔄</button>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", padding: 4, lineHeight: 1 }}>←</button>
+        <span style={{ color: "#fff", fontWeight: 700, fontSize: 16, letterSpacing: 0.3 }}>Dashboard</span>
+        <button onClick={fetchData} disabled={loading} style={{ background: "none", border: "none", color: "#86efac", fontSize: 18, cursor: "pointer", padding: 4, opacity: loading ? 0.5 : 1 }}>🔄</button>
       </div>
 
       <div style={{ maxWidth: 540, margin: "0 auto", padding: "0 12px" }}>
 
-        {/* Filtros: fecha + sucursal */}
-        <div style={{ display: "flex", gap: 8, margin: "14px 0 10px", flexWrap: "wrap" }}>
-          {/* Tabs período */}
-          <div style={{ display: "flex", background: "#fff", borderRadius: 10, padding: 3, border: "1px solid #e5e7eb", flex: 1 }}>
-            {(["hoy","semana","mes"] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: "6px 0", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12, background: tab === t ? "#16a34a" : "transparent", color: tab === t ? "#fff" : "#6b7280" }}>
-                {t === "hoy" ? "Hoy" : t === "semana" ? "Semana" : "Mes"}
-              </button>
-            ))}
-          </div>
-          {/* Filtro sucursal */}
-          <select value={sucFiltro} onChange={e => setSucFiltro(e.target.value)} style={{ ...inputStyle, borderRadius: 10, padding: "6px 10px", fontSize: 12 }}>
+        {/* Tabs período */}
+        <div style={{ display: "flex", background: "#fff", borderRadius: 12, padding: 4, margin: "14px 0 10px", border: "1px solid #e5e7eb" }}>
+          {(["hoy", "semana", "mes"] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: "7px 0", borderRadius: 9, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, background: tab === t ? "#16a34a" : "transparent", color: tab === t ? "#fff" : "#6b7280", transition: "all 0.2s" }}>
+              {t === "hoy" ? "Hoy" : t === "semana" ? "Semana" : "Mes"}
+            </button>
+          ))}
+        </div>
+
+        {/* Filtros sucursal + cajero */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+          <select value={sucFiltro} onChange={e => setSucFiltro(e.target.value)} style={{ ...inputStyle, flex: 1, borderRadius: 10, padding: "8px 10px" }}>
             <option value="todas">📍 Todos los puntos</option>
             {sucOpciones.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
           </select>
+          <select value={cajFiltro} onChange={e => setCajFiltro(e.target.value)} style={{ ...inputStyle, flex: 1, borderRadius: 10, padding: "8px 10px" }}>
+            <option value="todos">👤 Todos los cajeros</option>
+            {cajOpciones.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          </select>
         </div>
 
-        {/* Sub-filtros para semana/mes */}
-        {tab === "semana" && (
-          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "8px 12px", marginBottom: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, color: "#6b7280" }}>📅</span>
-            <input type="date" value={weekFrom} max={weekTo} onChange={e => setWeekFrom(e.target.value)} style={inputStyle} />
-            <span style={{ fontSize: 12, color: "#6b7280" }}>→</span>
-            <input type="date" value={weekTo} min={weekFrom} onChange={e => setWeekTo(e.target.value)} style={inputStyle} />
+        {/* Period selector */}
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 14 }}>📅</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{periodLabel()}</span>
           </div>
-        )}
-        {tab === "mes" && (
-          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "8px 12px", marginBottom: 10 }}>
-            <input type="month" value={monthValue} onChange={e => setMonthValue(e.target.value)} style={{ ...inputStyle, fontSize: 13 }} />
-          </div>
-        )}
-
-        {/* Período activo */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <span style={{ fontSize: 12, color: "#6b7280" }}>📅 {periodLabel()}</span>
+          {tab === "semana" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 12, color: "#6b7280" }}>De</span>
+              <input type="date" value={weekFrom} max={weekTo} onChange={e => setWeekFrom(e.target.value)} style={inputStyle} />
+              <span style={{ fontSize: 12, color: "#6b7280" }}>a</span>
+              <input type="date" value={weekTo} min={weekFrom} onChange={e => setWeekTo(e.target.value)} style={inputStyle} />
+            </div>
+          )}
+          {tab === "mes" && <input type="month" value={monthValue} onChange={e => setMonthValue(e.target.value)} style={{ ...inputStyle, fontSize: 13 }} />}
           {!loading && <span style={{ fontSize: 10, color: "#9ca3af" }}>↺ {lastUpdate.toLocaleTimeString("es-HN", { hour: "2-digit", minute: "2-digit" })}</span>}
         </div>
 
@@ -256,106 +262,117 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
 
         {!loading && kpi && (
           <>
-            {/* KPI Cards — 2x2 */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-              {[
-                { icon: "💵", label: "VENTAS DEL DÍA",    value: fmt(kpi.totalVentas),      prev: kpiAyer?.totalVentas },
-                { icon: "📦", label: "UNIDADES VENDIDAS",  value: String(kpi.unidades),       prev: kpiAyer?.unidades, noFmt: true },
-                { icon: "🧾", label: "TICKET PROMEDIO",    value: fmt(kpi.ticketPromedio),    prev: kpiAyer?.ticketPromedio },
-                { icon: "📊", label: "UTILIDAD ESTIMADA",  value: fmt(kpi.utilidadEstimada),  prev: kpiAyer?.utilidadEstimada },
-              ].map(({ icon, label, value, prev }) => {
-                const d = prev !== undefined ? delta(parseFloat(value.replace(/[^0-9.-]/g, "")), prev) : null;
-                return (
-                  <div key={label} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14, padding: "12px 14px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                      <span style={{ background: "#dcfce7", borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>{icon}</span>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, lineHeight: 1.2 }}>{label}</span>
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: "#16a34a", lineHeight: 1.1 }}>{value}</div>
-                    {d && (
-                      <div style={{ fontSize: 10, color: d.positive ? "#16a34a" : "#dc2626", marginTop: 3 }}>
-                        vs. Ayer {d.positive ? "+" : ""}{d.pct}%
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+              <KpiCard icon="💵" label="Ventas"       value={fmt(kpi.totalVentas)}      sub={`${kpi.numVentas} transacciones`} />
+              <KpiCard icon="🧾" label="Ticket prom." value={fmt(kpi.ticketPromedio)} />
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+              <KpiCard icon="📦" label="Unidades"      value={totalUnidades.toString()} />
+              <KpiCard icon="📊" label="Utilidad est." value={fmt(kpi.utilidadEstimada)} sub="~36% margen" />
             </div>
 
-            {/* Ventas por sucursal */}
-            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14, padding: "14px 16px", marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#111827", marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #f3f4f6" }}>🏪 Ventas por punto de venta</div>
-              {sucursales.length === 0 ? <EmptyRow /> : sucursales.map(s => (
+            {/* Por sucursal */}
+            <Section title="Por sucursal" icon="🏪">
+              {sucursales.length === 0 && <EmptyRow />}
+              {sucursales.map((s) => (
                 <div key={s.sucursal_id} style={{ marginBottom: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
-                    <span style={{ flex: 1, fontSize: 12, color: "#374151" }}>{s.nombre}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#16a34a" }}>{fmt(s.total)}</span>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#111827" }}>{s.nombre}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#16a34a" }}>{fmt(s.total)}</span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{ flex: 1, height: 8, background: "#e5e7eb", borderRadius: 999, overflow: "hidden" }}>
-                      <div style={{ width: `${(s.total / maxSuc) * 100}%`, height: "100%", background: "#16a34a", borderRadius: 999, transition: "width 0.5s" }} />
-                    </div>
-                    <span style={{ fontSize: 10, color: "#9ca3af", minWidth: 50 }}>{s.num_ventas} ventas</span>
+                  <div style={{ display: "flex", alignItems: "center", margin: "4px 0" }}><Bar value={s.total} max={maxSuc} /></div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 11, color: "#6b7280" }}>{s.num_ventas} ventas</span>
+                    {s.cajeros.length > 0 && <span style={{ fontSize: 11, color: "#9ca3af" }}>·</span>}
+                    {s.cajeros.map((c) => <Pill key={c} label={`👤 ${c}`} />)}
                   </div>
                 </div>
               ))}
-              <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: 2, background: "#16a34a" }} /><span style={{ fontSize: 10, color: "#6b7280" }}>Ventas</span></div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: 2, background: "#e5e7eb" }} /><span style={{ fontSize: 10, color: "#6b7280" }}>Resto del total</span></div>
-              </div>
-            </div>
+            </Section>
 
-            {/* Ventas por sabor (pie chart) */}
-            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14, padding: "14px 16px", marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#111827", marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #f3f4f6" }}>🥤 Ventas por sabor (unidades)</div>
-              <PieChart data={productos} total={totalUnidades} />
-            </div>
-
-            {/* Cajeros */}
-            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14, padding: "14px 16px", marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#111827", marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #f3f4f6" }}>👤 Por cajero</div>
-              {cajeros.length === 0 ? <EmptyRow /> : cajeros.map(c => (
-                <div key={c.usuario_id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f9fafb" }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>{c.nombre}</div>
-                    <div style={{ fontSize: 11, color: "#6b7280" }}>{c.num_ventas} ventas · prom. {fmt(c.total / (c.num_ventas || 1))}</div>
+            {/* Por cajero */}
+            <Section title="Por cajero" icon="👤">
+              {cajeros.length === 0 && <EmptyRow />}
+              {cajeros.map((c) => (
+                <div key={c.usuario_id} style={{ marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#111827" }}>{c.nombre}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#16a34a" }}>{fmt(c.total)}</span>
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#16a34a", alignSelf: "center" }}>{fmt(c.total)}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 2 }}>
+                    <span style={{ fontSize: 11, color: "#6b7280" }}>{c.num_ventas} ventas · prom. {fmt(c.total / c.num_ventas)}</span>
+                    {c.sucursales.length > 0 && <><span style={{ fontSize: 11, color: "#9ca3af" }}>·</span>{c.sucursales.map((s) => <Pill key={s} label={`🏪 ${s}`} />)}</>}
+                  </div>
                 </div>
               ))}
-            </div>
+            </Section>
+
+            {/* Por producto — con pie chart */}
+            <Section title="Ventas por sabor (unidades)" icon="🥤">
+              {productos.length === 0 ? <EmptyRow /> : (
+                <>
+                  <PieChart data={productos} total={totalUnidades} />
+                  <div style={{ borderTop: "1px solid #f3f4f6", marginTop: 14, paddingTop: 14 }}>
+                    {productos.map((p, i) => (
+                      <div key={p.nombre_producto} style={{ marginBottom: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          <span style={{ fontSize: 14, marginRight: 6, minWidth: 20 }}>{medals[i] || "  "}</span>
+                          <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#111827" }}>{p.nombre_producto}</span>
+                          <span style={{ fontSize: 12, color: "#6b7280", marginRight: 6 }}>{p.cantidad} uds</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "#16a34a" }}>{fmt(p.subtotal)}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", marginTop: 4, paddingLeft: 26 }}>
+                          <div style={{ flex: 1, height: 6, background: "#e5e7eb", borderRadius: 999, overflow: "hidden" }}>
+                            <div style={{ width: `${(p.cantidad / maxProd) * 100}%`, height: "100%", background: COLORS[i % COLORS.length], borderRadius: 999, transition: "width 0.5s" }} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </Section>
 
             {/* Método de pago */}
-            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14, padding: "14px 16px", marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#111827", marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #f3f4f6" }}>💳 Método de pago</div>
-              {metodos.length === 0 ? <EmptyRow /> : metodos.map((m, i) => {
-                const pct = kpi.totalVentas > 0 ? ((m.total / kpi.totalVentas) * 100).toFixed(0) : "0";
+            <Section title="Método de pago" icon="💳">
+              {metodos.length === 0 && <EmptyRow />}
+              {metodos.map((m) => {
+                const pct = ((m.total / (kpi.totalVentas || 1)) * 100).toFixed(0);
                 return (
                   <div key={m.metodo_pago} style={{ marginBottom: 10 }}>
-                    <div style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
-                      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, textTransform: "capitalize" }}>{m.metodo_pago}</span>
-                      <span style={{ fontSize: 11, color: "#6b7280", marginRight: 8 }}>{pct}%</span>
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#111827" }}>{m.metodo_pago}</span>
+                      <span style={{ fontSize: 11, color: "#6b7280", marginRight: 6 }}>{pct}%</span>
                       <span style={{ fontSize: 13, fontWeight: 700, color: "#16a34a" }}>{fmt(m.total)}</span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ flex: 1, height: 6, background: "#e5e7eb", borderRadius: 999, overflow: "hidden" }}>
-                        <div style={{ width: `${pct}%`, height: "100%", background: COLORS[i % COLORS.length], borderRadius: 999 }} />
-                      </div>
-                      <span style={{ fontSize: 10, color: "#9ca3af", minWidth: 50 }}>{m.num_ventas} ventas</span>
+                    <div style={{ display: "flex", alignItems: "center", marginTop: 4 }}>
+                      <Bar value={m.total} max={maxMet} />
+                      <span style={{ fontSize: 11, color: "#9ca3af", minWidth: 60, textAlign: "right" }}>{m.num_ventas} ventas</span>
                     </div>
                   </div>
                 );
               })}
-            </div>
+            </Section>
 
-            {/* Footer */}
-            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
               <span style={{ fontSize: 16 }}>📊</span>
               <span style={{ fontSize: 12, color: "#6b7280" }}>Resumen general de ventas, unidades, ticket promedio y utilidad.</span>
             </div>
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14, padding: "14px 16px", marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #f3f4f6" }}>
+        <span style={{ fontSize: 15 }}>{icon}</span>
+        <span style={{ fontWeight: 700, fontSize: 14, color: "#111827" }}>{title}</span>
+      </div>
+      {children}
     </div>
   );
 }
