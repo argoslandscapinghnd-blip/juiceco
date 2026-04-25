@@ -180,7 +180,7 @@ export default function PuntoVentaScreen({
                       onClick={() => setConfirmar(s)}
                       style={{ ...accionBtn, background: "#fdecea", color: colors.danger }}
                     >
-                      🔓 Liberar
+                      🔓 LIBERAR
                     </button>
                   )}
                   {!esAdmin && !s.ocupada && (
