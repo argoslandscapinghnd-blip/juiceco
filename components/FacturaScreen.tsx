@@ -27,6 +27,7 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
   const [correo, setCorreo] = useState("");
   const [clientes, setClientes] = useState<ClienteRTN[]>([]);
   const [clienteBloqueado, setClienteBloqueado] = useState<ClienteRTN | null>(null);
+  const [modoEditarCliente, setModoEditarCliente] = useState(false);
   const [error, setError] = useState("");
 
   const rtnRef = useRef<HTMLInputElement>(null);
@@ -46,6 +47,7 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
 
     if (rtnFinal.length !== 14) {
       setClienteBloqueado(null);
+      setModoEditarCliente(false);
       return;
     }
 
@@ -55,9 +57,11 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
       setClienteBloqueado(clienteExistente);
       setNombre(clienteExistente.nombre ?? "");
       setCorreo(clienteExistente.correo ?? "");
+      setModoEditarCliente(false);
       setError("");
     } else {
       setClienteBloqueado(null);
+      setModoEditarCliente(false);
     }
   }, [rtn, clientes]);
 
@@ -106,6 +110,7 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
     setNombre(cliente.nombre ?? "");
     setCorreo(cliente.correo ?? "");
     setClienteBloqueado(cliente);
+    setModoEditarCliente(false);
     setError("");
     setTimeout(() => rtnRef.current?.focus(), 50);
   };
@@ -121,21 +126,6 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
     if (rtnFinal.length !== 14) {
       setError("El RTN debe tener exactamente 14 dígitos.");
       return;
-    }
-
-    const clienteExistente = clientes.find((c) => c.rtn === rtnFinal);
-
-    if (clienteExistente) {
-      const nombreExistente = (clienteExistente.nombre ?? "").trim().toLowerCase();
-      const nombreIngresado = nombre.trim().toLowerCase();
-
-      if (nombreIngresado !== nombreExistente) {
-        setError(`Este RTN ya existe registrado como "${clienteExistente.nombre}". No puede usarse con otro nombre.`);
-        setNombre(clienteExistente.nombre ?? "");
-        setCorreo(clienteExistente.correo ?? "");
-        setClienteBloqueado(clienteExistente);
-        return;
-      }
     }
 
     if (!nombre.trim()) {
@@ -172,6 +162,9 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
           .slice(0, 8)
       : [];
 
+  const nombreBloqueado = !!clienteBloqueado && !modoEditarCliente;
+  const correoBloqueado = !!clienteBloqueado && !!clienteBloqueado.correo && !modoEditarCliente;
+
   if (paso === "elegir") {
     return (
       <section>
@@ -192,21 +185,6 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
             <span style={{ fontSize: 36, marginBottom: 8 }}>👤</span>
             <span style={{ fontWeight: "bold", fontSize: 18, color: colors.textPrimary }}>NO</span>
             <span style={{ fontSize: 13, color: colors.textMuted }}>Consumidor final</span>
-          </button>
-
-          <button
-            style={{
-              background: "none",
-              border: "none",
-              color: colors.textMuted,
-              cursor: "pointer",
-              marginTop: 20,
-              fontSize: 15,
-              width: "100%",
-            }}
-            onClick={onBack}
-          >
-            CANCELAR
           </button>
         </div>
       </section>
@@ -236,23 +214,13 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
                 style={clienteBtn}
               >
                 <strong>{cliente.rtn}</strong>
-                <span style={{ color: colors.textMuted }}>
-                  {cliente.nombre || "Sin nombre fiscal"}
-                </span>
+                <span style={{ color: colors.textMuted }}>{cliente.nombre || "Sin nombre fiscal"}</span>
                 {cliente.correo && (
-                  <span style={{ color: colors.textMuted, fontSize: 12 }}>
-                    {cliente.correo}
-                  </span>
+                  <span style={{ color: colors.textMuted, fontSize: 12 }}>{cliente.correo}</span>
                 )}
               </button>
             ))}
           </div>
-        )}
-
-        {busqueda.trim().length > 0 && clientesFiltrados.length === 0 && (
-          <p style={{ fontSize: 12, color: colors.textMuted, marginTop: -8, marginBottom: 14 }}>
-            No se encontraron clientes con ese RTN, nombre o correo.
-          </p>
         )}
 
         <label style={labelStyle}>RTN</label>
@@ -269,9 +237,23 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
         />
 
         {clienteBloqueado && (
-          <p style={{ fontSize: 12, color: colors.primary, marginTop: -8, marginBottom: 12 }}>
-            RTN existente. Datos cargados automáticamente y bloqueados para evitar duplicados.
-          </p>
+          <div style={{ marginTop: -8, marginBottom: 12 }}>
+            <p style={{ fontSize: 12, color: colors.primary, margin: "0 0 8px" }}>
+              RTN existente. Datos cargados automáticamente.
+            </p>
+
+            {!modoEditarCliente && (
+              <button type="button" style={editarBtn} onClick={() => setModoEditarCliente(true)}>
+                ✏️ EDITAR DATOS FISCALES
+              </button>
+            )}
+
+            {modoEditarCliente && (
+              <p style={{ fontSize: 12, color: colors.danger, margin: 0 }}>
+                Editando datos fiscales de este RTN. Verifique bien antes de continuar.
+              </p>
+            )}
+          </div>
         )}
 
         <label style={labelStyle}>Nombre / Razón Social</label>
@@ -279,11 +261,8 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
           placeholder="Juan Pérez"
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
-          style={{
-            ...inputStyle,
-            opacity: clienteBloqueado ? 0.7 : 1,
-          }}
-          disabled={!!clienteBloqueado}
+          style={{ ...inputStyle, opacity: nombreBloqueado ? 0.7 : 1 }}
+          disabled={nombreBloqueado}
         />
 
         <label style={labelStyle}>Correo (opcional)</label>
@@ -291,13 +270,16 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
           placeholder="juanperez@gmail.com"
           value={correo}
           onChange={(e) => setCorreo(e.target.value)}
-          style={{
-            ...inputStyle,
-            opacity: clienteBloqueado ? 0.7 : 1,
-          }}
+          style={{ ...inputStyle, opacity: correoBloqueado ? 0.7 : 1 }}
           type="email"
-          disabled={!!clienteBloqueado}
+          disabled={correoBloqueado}
         />
+
+        {clienteBloqueado && !clienteBloqueado.correo && !modoEditarCliente && (
+          <p style={{ fontSize: 12, color: colors.textMuted, marginTop: -8, marginBottom: 12 }}>
+            Este RTN no tiene correo guardado. Puede agregarlo.
+          </p>
+        )}
 
         {error && (
           <p style={{ color: colors.danger, fontSize: 14, marginBottom: 12, marginTop: 0 }}>
@@ -324,7 +306,6 @@ const opcionBtn: React.CSSProperties = {
   flexDirection: "column",
   alignItems: "center",
   gap: 4,
-  transition: "background 0.15s",
 };
 
 const clienteBtn: React.CSSProperties = {
@@ -339,6 +320,18 @@ const clienteBtn: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: 3,
+};
+
+const editarBtn: React.CSSProperties = {
+  width: "100%",
+  padding: "9px 10px",
+  borderRadius: 10,
+  border: `1px solid ${colors.primary}`,
+  background: colors.primaryLight,
+  color: colors.primary,
+  fontWeight: "bold",
+  cursor: "pointer",
+  fontSize: 12,
 };
 
 const labelStyle: React.CSSProperties = {
