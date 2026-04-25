@@ -11,11 +11,7 @@ export type Pantalla =
   | "carrito"
   | "factura"
   | "pago"
-  | "confirmacion"
-  | "admin"
-  | "admin_usuarios"
-  | "admin_nuevo_usuario"
-  | "admin_editar_usuario";
+  | "confirmacion";
 
 export type ItemCarrito = {
   nombre: string;
@@ -31,19 +27,7 @@ export type DatosFactura = {
 
 export type MetodoPago = "efectivo" | "tarjeta" | "transferencia";
 
-export type Rol = "cajero" | "administrador";
-
-export type Usuario = {
-  id:        string;
-  nombre:    string;
-  usuario:   string;
-  password:  string;
-  telefono:  string;
-  rol:       Rol;
-  activo:    boolean;
-};
-
-export const PRECIO_UNITARIO = 50;
+export const PRECIO_UNITARIO = 50; // Lempiras
 
 export const SABORES = [
   { nombre: "Limonada Natural",  emoji: "🍋" },
@@ -55,8 +39,8 @@ export const SABORES = [
 ];
 
 export const PUNTOS = [
-  { codigo: "01", nombre: "Sucursal Centro",        ciudad: "Tegucigalpa"    },
-  { codigo: "02", nombre: "Sucursal Mall",           ciudad: "Tegucigalpa"    },
-  { codigo: "03", nombre: "Sucursal Comayagüela",    ciudad: "Tegucigalpa"    },
+  { codigo: "01", nombre: "Sucursal Centro",      ciudad: "Tegucigalpa" },
+  { codigo: "02", nombre: "Sucursal Mall",         ciudad: "Tegucigalpa" },
+  { codigo: "03", nombre: "Sucursal Comayagüela",  ciudad: "Tegucigalpa" },
   { codigo: "04", nombre: "Sucursal San Pedro Sula", ciudad: "San Pedro Sula" },
 ];
