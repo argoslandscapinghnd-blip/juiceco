@@ -1,6 +1,6 @@
 "use client";
 // ─────────────────────────────────────────────
-//  JUICE CO. — Lista de Usuarios (con Supabase)
+//  JUICE CO. — Lista de Usuarios
 // ─────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { Header } from "./ui/components";
@@ -15,41 +15,66 @@ interface Props {
 }
 
 export default function UsuariosScreen({ onNuevo, onEditar, onBack }: Props) {
-  const [usuarios,  setUsuarios]  = useState<Usuario[]>([]);
-  const [cargando,  setCargando]  = useState(true);
+  const [usuarios,          setUsuarios]          = useState<Usuario[]>([]);
+  const [cargando,          setCargando]          = useState(true);
+  const [verInhabilitados,  setVerInhabilitados]  = useState(false);
 
-  const cargarUsuarios = async () => {
+  useEffect(() => { cargar(); }, [verInhabilitados]);
+
+  const cargar = async () => {
     setCargando(true);
-    const { data } = await supabase.from("usuarios").select("*").order("nombre");
+    const { data } = await supabase
+      .from("usuarios")
+      .select("*")
+      .eq("activo", !verInhabilitados)
+      .order("nombre");
     setUsuarios((data as Usuario[]) ?? []);
     setCargando(false);
   };
 
-  useEffect(() => { cargarUsuarios(); }, []);
-
   const toggleActivo = async (u: Usuario) => {
     await supabase.from("usuarios").update({ activo: !u.activo }).eq("id", u.id);
-    cargarUsuarios();
+    cargar();
   };
 
   return (
     <section>
       <Header titulo="Usuarios" onBack={onBack} />
 
-      <button style={{ ...btnPrimary, marginBottom: 16 }} onClick={onNuevo}>
-        + NUEVO USUARIO
-      </button>
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <button onClick={() => setVerInhabilitados(false)} style={{
+          flex: 1, padding: "10px", borderRadius: 10, border: "none", fontWeight: "bold", cursor: "pointer",
+          background: !verInhabilitados ? colors.primary : "#eee",
+          color: !verInhabilitados ? "white" : "#555",
+        }}>
+          Activos
+        </button>
+        <button onClick={() => setVerInhabilitados(true)} style={{
+          flex: 1, padding: "10px", borderRadius: 10, border: "none", fontWeight: "bold", cursor: "pointer",
+          background: verInhabilitados ? colors.danger : "#eee",
+          color: verInhabilitados ? "white" : "#555",
+        }}>
+          Inhabilitados
+        </button>
+      </div>
+
+      {!verInhabilitados && (
+        <button style={{ ...btnPrimary, marginBottom: 14 }} onClick={onNuevo}>
+          + NUEVO USUARIO
+        </button>
+      )}
 
       {cargando ? (
         <div style={{ textAlign: "center", color: colors.textMuted, padding: 40 }}>Cargando...</div>
       ) : usuarios.length === 0 ? (
         <div style={{ ...cardStyle, textAlign: "center", color: colors.textMuted, padding: 40 }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>👤</div>
-          <p>No hay usuarios registrados</p>
+          <p>{verInhabilitados ? "No hay usuarios inhabilitados." : "No hay usuarios activos."}</p>
         </div>
       ) : (
         usuarios.map((u) => (
-          <div key={u.id} style={{ ...cardStyle, opacity: u.activo ? 1 : 0.55, marginBottom: 10 }}>
+          <div key={u.id} style={{ ...cardStyle, marginBottom: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -68,9 +93,13 @@ export default function UsuariosScreen({ onNuevo, onEditar, onBack }: Props) {
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginLeft: 12 }}>
-                <button onClick={() => onEditar(u)} style={accionBtn("#e8f5e9", colors.primary)}>✏️ Editar</button>
-                <button onClick={() => toggleActivo(u)} style={accionBtn(u.activo ? "#fdecea" : "#e8f5e9", u.activo ? colors.danger : colors.primary)}>
-                  {u.activo ? "🚫 Inhabilitar" : "✅ Habilitar"}
+                {!verInhabilitados && (
+                  <button onClick={() => onEditar(u)} style={accionBtn("#e8f5e9", colors.primary)}>
+                    ✏️ Editar
+                  </button>
+                )}
+                <button onClick={() => toggleActivo(u)} style={accionBtn(verInhabilitados ? "#e8f5e9" : "#fdecea", verInhabilitados ? colors.primary : colors.danger)}>
+                  {verInhabilitados ? "✔ Activar" : "🚫 Inhabilitar"}
                 </button>
               </div>
             </div>
