@@ -186,9 +186,43 @@ export default function FormUsuarioScreen({ usuarioEditar, onGuardar, onBack }: 
         <input
           placeholder="+504 9999-9999"
           value={telefono}
-          onChange={(e) => setTelefono(formatearTelefono(e.target.value))}
-          style={inputStyle}
           type="tel"
+          style={inputStyle}
+          onChange={(e) => {
+            const valor = e.target.value;
+
+            if (!valor.startsWith("+504")) {
+              setTelefono(formatearTelefono(valor));
+              return;
+            }
+
+            setTelefono(formatearTelefono(valor));
+          }}
+          onFocus={(e) => {
+            setTimeout(() => {
+              const pos = e.target.value.indexOf(" ") + 1;
+              e.target.setSelectionRange(pos, pos);
+            }, 0);
+          }}
+          onClick={(e) => {
+            const input = e.target as HTMLInputElement;
+            const prefijoFin = input.value.indexOf(" ") + 1;
+
+            if (input.selectionStart! < prefijoFin) {
+              input.setSelectionRange(prefijoFin, prefijoFin);
+            }
+          }}
+          onKeyDown={(e) => {
+            const input = e.currentTarget;
+            const prefijoFin = input.value.indexOf(" ") + 1;
+
+            if (
+              (e.key === "Backspace" && input.selectionStart! <= prefijoFin) ||
+              (e.key === "ArrowLeft" && input.selectionStart! <= prefijoFin)
+            ) {
+              e.preventDefault();
+            }
+          }}
         />
 
         <label style={labelStyle}>Rol</label>
