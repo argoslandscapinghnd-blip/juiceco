@@ -5,41 +5,33 @@
 import { useState } from "react";
 import { Header } from "./ui/components";
 import { colors, inputStyle, btnPrimary, btnSecondary, cardStyle } from "./ui/styles";
+import { Producto } from "./ui/types";
 import { supabase } from "@/supabase";
 
-interface Producto {
-  id:     number;
-  nombre: string;
-  emoji:  string;
-  precio: number;
-  activo: boolean;
-}
-
 interface Props {
-  productoEditar?: Producto;
+  bebidaEditar?: Producto;
   onGuardar: () => void;
   onBack:    () => void;
 }
 
-// Emojis sugeridos para bebidas
 const EMOJIS_SUGERIDOS = [
   "🍋","🍓","🌿","🥭","🥒","🌱","💧","🍊","🍍","🫐",
   "🍇","🍉","🥝","🍑","🍒","🫒","🌺","🍵","🧃","🥤",
   "🫖","🍹","🧋","🥛","🍺","🫗","🧊","🌸","🍀","🌼",
 ];
 
-export default function FormBebidaScreen({ productoEditar, onGuardar, onBack }: Props) {
-  const editando = !!productoEditar;
+export default function FormBebidaScreen({ bebidaEditar, onGuardar, onBack }: Props) {
+  const editando = !!bebidaEditar;
 
-  const [nombre,   setNombre]   = useState(productoEditar?.nombre ?? "");
-  const [emoji,    setEmoji]    = useState(productoEditar?.emoji  ?? "🍹");
-  const [precio,   setPrecio]   = useState(productoEditar?.precio?.toString() ?? "");
-  const [error,    setError]    = useState("");
-  const [cargando, setCargando] = useState(false);
+  const [nombre,    setNombre]    = useState(bebidaEditar?.nombre ?? "");
+  const [emoji,     setEmoji]     = useState(bebidaEditar?.emoji  ?? "🍹");
+  const [precio,    setPrecio]    = useState(bebidaEditar?.precio?.toString() ?? "");
+  const [error,     setError]     = useState("");
+  const [cargando,  setCargando]  = useState(false);
   const [verEmojis, setVerEmojis] = useState(false);
 
   const handleGuardar = async () => {
-    if (!nombre.trim())  { setError("El nombre es obligatorio.");  return; }
+    if (!nombre.trim()) { setError("El nombre es obligatorio."); return; }
     if (!precio.trim() || isNaN(parseFloat(precio)) || parseFloat(precio) <= 0) {
       setError("Ingresa un precio válido."); return;
     }
@@ -51,7 +43,7 @@ export default function FormBebidaScreen({ productoEditar, onGuardar, onBack }: 
       const { error: err } = await supabase
         .from("productos")
         .update({ nombre, emoji, precio: parseFloat(precio) })
-        .eq("id", productoEditar.id);
+        .eq("id", bebidaEditar.id);
       if (err) { setError("Error al guardar: " + err.message); setCargando(false); return; }
     } else {
       const { error: err } = await supabase
@@ -96,23 +88,17 @@ export default function FormBebidaScreen({ productoEditar, onGuardar, onBack }: 
           </button>
         </div>
 
-        {/* Grid de emojis */}
         {verEmojis && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8, marginBottom: 16, background: "#f9f9f9", padding: 12, borderRadius: 10 }}>
             {EMOJIS_SUGERIDOS.map((e) => (
               <button
                 key={e}
                 onClick={() => { setEmoji(e); setVerEmojis(false); }}
-                style={{
-                  fontSize: 24, padding: 6, borderRadius: 8, cursor: "pointer",
-                  border: `2px solid ${emoji === e ? colors.primary : "transparent"}`,
-                  background: emoji === e ? colors.primaryLight : "white",
-                }}
+                style={{ fontSize: 24, padding: 6, borderRadius: 8, cursor: "pointer", border: `2px solid ${emoji === e ? colors.primary : "transparent"}`, background: emoji === e ? colors.primaryLight : "white" }}
               >
                 {e}
               </button>
             ))}
-            {/* Input emoji personalizado */}
             <input
               placeholder="✍️"
               maxLength={2}
@@ -122,7 +108,6 @@ export default function FormBebidaScreen({ productoEditar, onGuardar, onBack }: 
           </div>
         )}
 
-        {/* Nombre */}
         <label style={labelStyle}>Nombre de la bebida</label>
         <input
           placeholder="Ej: Limonada Tamarindo"
@@ -131,7 +116,6 @@ export default function FormBebidaScreen({ productoEditar, onGuardar, onBack }: 
           style={inputStyle}
         />
 
-        {/* Precio */}
         <label style={labelStyle}>Precio (L.)</label>
         <input
           placeholder="0.00"
