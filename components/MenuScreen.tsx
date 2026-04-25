@@ -77,7 +77,7 @@ export default function MenuScreen({
                   <img
                     src={b.imagen_url}
                     alt={b.nombre}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
                   />
                 ) : (
                   <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>
