@@ -8,97 +8,200 @@ import { colors, btnPrimary, cardStyle } from "./ui/styles";
 import { supabase } from "@/supabase";
 
 interface Insumo {
-  id:             number;
-  nombre:         string;
-  unidad:         string;
-  tipo:           "ingrediente" | "empaque";
+  id: number;
+  nombre: string;
+  unidad: string;
+  tipo: "ingrediente" | "empaque";
   costo_unitario: number;
-  activo:         boolean;
+  activo: boolean;
 }
 
 interface Props {
-  onNuevo:  () => void;
+  onNuevo: () => void;
   onEditar: (i: Insumo) => void;
-  onBack:   () => void;
+  onBack: () => void;
 }
 
 export default function InsumosScreen({ onNuevo, onEditar, onBack }: Props) {
-  const [insumos,  setInsumos]  = useState<Insumo[]>([]);
+  const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [cargando, setCargando] = useState(true);
-  const [filtro,   setFiltro]   = useState<"todos" | "ingrediente" | "empaque">("todos");
+  const [filtro, setFiltro] = useState<"todos" | "ingrediente" | "empaque">("todos");
+  const [verInhabilitados, setVerInhabilitados] = useState(false);
+
+  useEffect(() => {
+    cargar();
+  }, [verInhabilitados]);
 
   const cargar = async () => {
     setCargando(true);
-    const { data } = await supabase.from("insumos_maestro").select("*").order("tipo").order("nombre");
+
+    const { data } = await supabase
+      .from("insumos_maestro")
+      .select("*")
+      .eq("activo", !verInhabilitados)
+      .order("tipo")
+      .order("nombre");
+
     setInsumos((data as Insumo[]) ?? []);
     setCargando(false);
   };
 
-  useEffect(() => { cargar(); }, []);
-
   const toggleActivo = async (i: Insumo) => {
-    await supabase.from("insumos_maestro").update({ activo: !i.activo }).eq("id", i.id);
+    await supabase
+      .from("insumos_maestro")
+      .update({ activo: !i.activo })
+      .eq("id", i.id);
+
     cargar();
   };
 
-  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
+  const fmt = (n: number) =>
+    Number(n || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
 
-  const filtrados = insumos.filter(i => filtro === "todos" || i.tipo === filtro);
+  const filtrados = insumos.filter((i) => filtro === "todos" || i.tipo === filtro);
 
   return (
     <section>
       <Header titulo="Insumos y Empaque" onBack={onBack} />
 
-      <button style={{ ...btnPrimary, marginBottom: 16 }} onClick={onNuevo}>
-        + NUEVO INSUMO
-      </button>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <button
+          onClick={() => setVerInhabilitados(false)}
+          style={{
+            flex: 1,
+            padding: "10px",
+            borderRadius: 10,
+            border: "none",
+            fontWeight: "bold",
+            background: !verInhabilitados ? colors.primary : "#eee",
+            color: !verInhabilitados ? "white" : "#555",
+            cursor: "pointer",
+          }}
+        >
+          Activos
+        </button>
 
-      {/* Filtros */}
+        <button
+          onClick={() => setVerInhabilitados(true)}
+          style={{
+            flex: 1,
+            padding: "10px",
+            borderRadius: 10,
+            border: "none",
+            fontWeight: "bold",
+            background: verInhabilitados ? colors.danger : "#eee",
+            color: verInhabilitados ? "white" : "#555",
+            cursor: "pointer",
+          }}
+        >
+          Inhabilitados
+        </button>
+      </div>
+
+      {!verInhabilitados && (
+        <button style={{ ...btnPrimary, marginBottom: 16 }} onClick={onNuevo}>
+          + NUEVO INSUMO
+        </button>
+      )}
+
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         {(["todos", "ingrediente", "empaque"] as const).map((f) => (
-          <button key={f} onClick={() => setFiltro(f)} style={{
-            padding: "6px 16px", borderRadius: 20, border: "none", cursor: "pointer",
-            fontWeight: "bold", fontSize: 12,
-            background: filtro === f ? colors.primary : "#e8e8e8",
-            color: filtro === f ? "white" : colors.textSecondary,
-          }}>
+          <button
+            key={f}
+            onClick={() => setFiltro(f)}
+            style={{
+              padding: "6px 16px",
+              borderRadius: 20,
+              border: "none",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: 12,
+              background: filtro === f ? colors.primary : "#e8e8e8",
+              color: filtro === f ? "white" : colors.textSecondary,
+            }}
+          >
             {f === "todos" ? "Todos" : f === "ingrediente" ? "🧪 Ingredientes" : "📦 Empaque"}
           </button>
         ))}
       </div>
 
       {cargando ? (
-        <div style={{ textAlign: "center", color: colors.textMuted, padding: 40 }}>Cargando...</div>
+        <div style={{ textAlign: "center", color: colors.textMuted, padding: 40 }}>
+          Cargando...
+        </div>
       ) : filtrados.length === 0 ? (
         <div style={{ ...cardStyle, textAlign: "center", color: colors.textMuted, padding: 40 }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>📦</div>
-          <p>No hay insumos registrados</p>
+          <p>
+            {verInhabilitados
+              ? "No hay insumos inhabilitados."
+              : "No hay insumos activos registrados."}
+          </p>
         </div>
       ) : (
         filtrados.map((ins) => (
-          <div key={ins.id} style={{ ...cardStyle, opacity: ins.activo ? 1 : 0.55, marginBottom: 10 }}>
+          <div key={ins.id} style={{ ...cardStyle, marginBottom: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 20 }}>{ins.tipo === "ingrediente" ? "🧪" : "📦"}</span>
-                  <span style={{ fontWeight: "bold", fontSize: 15, color: colors.textPrimary }}>{ins.nombre}</span>
+                  <span style={{ fontSize: 20 }}>
+                    {ins.tipo === "ingrediente" ? "🧪" : "📦"}
+                  </span>
+
+                  <span style={{ fontWeight: "bold", fontSize: 15, color: colors.textPrimary }}>
+                    {ins.nombre}
+                  </span>
                 </div>
+
                 <div style={{ fontSize: 13, color: colors.textMuted, marginBottom: 4 }}>
-                  Unidad: <strong>{ins.unidad}</strong> · Costo: <strong style={{ color: colors.primary }}>L {fmt(ins.costo_unitario)}</strong>
+                  Unidad: <strong>{ins.unidad}</strong> · Costo:{" "}
+                  <strong style={{ color: colors.primary }}>L {fmt(ins.costo_unitario)}</strong>
                 </div>
+
                 <div style={{ display: "flex", gap: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: "bold", padding: "3px 10px", borderRadius: 20, background: ins.tipo === "ingrediente" ? "#e3f2fd" : "#fff3e0", color: ins.tipo === "ingrediente" ? "#1565c0" : "#e65100" }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "bold",
+                      padding: "3px 10px",
+                      borderRadius: 20,
+                      background: ins.tipo === "ingrediente" ? "#e3f2fd" : "#fff3e0",
+                      color: ins.tipo === "ingrediente" ? "#1565c0" : "#e65100",
+                    }}
+                  >
                     {ins.tipo === "ingrediente" ? "Ingrediente" : "Empaque"}
                   </span>
-                  <span style={{ fontSize: 11, fontWeight: "bold", padding: "3px 10px", borderRadius: 20, background: ins.activo ? colors.primaryLight : "#fdecea", color: ins.activo ? colors.primary : colors.danger }}>
-                    {ins.activo ? "Activo" : "Inactivo"}
+
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "bold",
+                      padding: "3px 10px",
+                      borderRadius: 20,
+                      background: ins.activo ? colors.primaryLight : "#fdecea",
+                      color: ins.activo ? colors.primary : colors.danger,
+                    }}
+                  >
+                    {ins.activo ? "Activo" : "Inhabilitado"}
                   </span>
                 </div>
               </div>
+
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginLeft: 12 }}>
-                <button onClick={() => onEditar(ins)} style={accionBtn("#e8f5e9", colors.primary)}>✏️ Editar</button>
-                <button onClick={() => toggleActivo(ins)} style={accionBtn(ins.activo ? "#fdecea" : "#e8f5e9", ins.activo ? colors.danger : colors.primary)}>
-                  {ins.activo ? "🚫 Inhabilitar" : "✅ Habilitar"}
+                {!verInhabilitados && (
+                  <button onClick={() => onEditar(ins)} style={btnEditar}>
+                    ✏️ Editar
+                  </button>
+                )}
+
+                <button
+                  onClick={() => toggleActivo(ins)}
+                  style={verInhabilitados ? btnActivar : btnInhabilitar}
+                >
+                  {verInhabilitados ? "✅ Activar" : "🚫 Inhabilitar"}
                 </button>
               </div>
             </div>
@@ -109,7 +212,38 @@ export default function InsumosScreen({ onNuevo, onEditar, onBack }: Props) {
   );
 }
 
-const accionBtn = (bg: string, color: string): React.CSSProperties => ({
-  padding: "6px 12px", borderRadius: 8, border: "none", background: bg,
-  color, fontWeight: "bold", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap",
-});
+const btnEditar: React.CSSProperties = {
+  padding: "6px 12px",
+  borderRadius: 8,
+  border: "none",
+  background: "#e8f5e9",
+  color: "#2e7d32",
+  fontWeight: "bold",
+  fontSize: 12,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+};
+
+const btnInhabilitar: React.CSSProperties = {
+  padding: "6px 12px",
+  borderRadius: 8,
+  border: "none",
+  background: "#fdecea",
+  color: "#c62828",
+  fontWeight: "bold",
+  fontSize: 12,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+};
+
+const btnActivar: React.CSSProperties = {
+  padding: "6px 12px",
+  borderRadius: 8,
+  border: "none",
+  background: "#e8f5e9",
+  color: "#2e7d32",
+  fontWeight: "bold",
+  fontSize: 12,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+};
