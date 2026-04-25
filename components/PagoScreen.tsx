@@ -1,6 +1,6 @@
 "use client";
 // ─────────────────────────────────────────────
-//  JUICE CO. — Pantalla 8 & 9: Método de Pago + Efectivo
+//  JUICE CO. — Pantalla: Método de Pago + Efectivo
 // ─────────────────────────────────────────────
 import { useState } from "react";
 import { Header } from "./ui/components";
@@ -13,25 +13,27 @@ interface Props {
   onBack:      () => void;
 }
 
-export default function PagoScreen({ total, onConfirmar, onBack }: Props) {
-  const [paso,          setPaso]          = useState<"metodo" | "efectivo">("metodo");
-  const [montoTexto,    setMontoTexto]    = useState("");
-  const [error,         setError]         = useState("");
+// Formatea número con comas: 1500.50 → "1,500.50"
+const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const monto   = parseFloat(montoTexto) || 0;
-  const cambio  = Math.max(0, monto - total);
+export default function PagoScreen({ total, onConfirmar, onBack }: Props) {
+  const [paso,       setPaso]       = useState<"metodo" | "efectivo">("metodo");
+  const [montoTexto, setMontoTexto] = useState("");
+  const [error,      setError]      = useState("");
+
+  const monto  = parseFloat(montoTexto) || 0;
+  const cambio = Math.max(0, monto - total);
 
   const presionar = (val: string) => {
-    if (val === "CE") { setMontoTexto("");  return; }
-    if (val === "⌫") { setMontoTexto((m) => m.slice(0, -1)); return; }
-    // Máximo 7 dígitos
+    if (val === "CE") { setMontoTexto(""); return; }
+    if (val === "⌫")  { setMontoTexto((m) => m.slice(0, -1)); return; }
     if (montoTexto.replace(".", "").length >= 7) return;
     setMontoTexto((m) => m + val);
   };
 
   const handleConfirmarEfectivo = () => {
     if (monto < total) {
-      setError(`El monto recibido debe ser al menos L ${total.toFixed(2)}`);
+      setError(`El monto debe ser al menos L ${fmt(total)}`);
       return;
     }
     setError("");
@@ -45,10 +47,9 @@ export default function PagoScreen({ total, onConfirmar, onBack }: Props) {
     return (
       <section>
         <Header titulo="Método de pago" onBack={onBack} />
-
         <div style={{ ...cardStyle, padding: "24px 20px" }}>
           <p style={{ textAlign: "center", color: colors.textMuted, marginTop: 0, fontSize: 14 }}>
-            Seleccione método de pago
+            Total a cobrar: <strong style={{ color: colors.primary, fontSize: 18 }}>L {fmt(total)}</strong>
           </p>
 
           {[
@@ -59,13 +60,7 @@ export default function PagoScreen({ total, onConfirmar, onBack }: Props) {
             <button
               key={metodo}
               style={metodoBtnStyle}
-              onClick={() => {
-                if (metodo === "efectivo") {
-                  setPaso("efectivo");
-                } else {
-                  onConfirmar(metodo);
-                }
-              }}
+              onClick={() => metodo === "efectivo" ? setPaso("efectivo") : onConfirmar(metodo)}
             >
               <span style={{ fontSize: 28 }}>{emoji}</span>
               <span style={{ fontWeight: "bold", fontSize: 16 }}>{label}</span>
@@ -89,30 +84,29 @@ export default function PagoScreen({ total, onConfirmar, onBack }: Props) {
       <Header titulo="Pago en efectivo" onBack={() => { setPaso("metodo"); setMontoTexto(""); setError(""); }} />
 
       <div style={cardStyle}>
-        {/* Resumen */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 15 }}>
-          <span style={{ color: colors.textMuted }}>Total a pagar</span>
-          <span style={{ fontWeight: "bold" }}>L {total.toFixed(2)}</span>
+        {/* Resumen — misma fuente para todos los valores */}
+        <div style={filaStyle}>
+          <span style={{ color: colors.textMuted, fontSize: 15 }}>Total a pagar</span>
+          <span style={{ fontWeight: "bold", fontSize: 15 }}>L {fmt(total)}</span>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, fontSize: 15 }}>
-          <span style={{ color: colors.textMuted }}>Monto recibido</span>
-          <span style={{ fontWeight: "bold", fontSize: 20 }}>
-            {montoTexto ? `L ${parseFloat(montoTexto).toLocaleString("es-HN", { minimumFractionDigits: 2 })}` : "—"}
+        <div style={filaStyle}>
+          <span style={{ color: colors.textMuted, fontSize: 15 }}>Monto recibido</span>
+          <span style={{ fontWeight: "bold", fontSize: 15 }}>
+            {montoTexto ? `L ${fmt(parseFloat(montoTexto))}` : "—"}
           </span>
         </div>
 
         {/* Cambio */}
         <div style={{
-          display: "flex", justifyContent: "space-between",
-          padding: "12px 16px", borderRadius: 10,
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "12px 16px", borderRadius: 10, marginBottom: 20,
           background: monto >= total ? colors.primaryLight : "#f5f5f5",
-          marginBottom: 20,
         }}>
-          <span style={{ fontWeight: "bold", color: monto >= total ? colors.primary : colors.textMuted }}>
+          <span style={{ fontWeight: "bold", fontSize: 15, color: monto >= total ? colors.primary : colors.textMuted }}>
             Cambio
           </span>
-          <span style={{ fontWeight: "bold", fontSize: 20, color: monto >= total ? colors.primary : colors.textMuted }}>
-            L {cambio.toFixed(2)}
+          <span style={{ fontWeight: "bold", fontSize: 15, color: monto >= total ? colors.primary : colors.textMuted }}>
+            L {fmt(cambio)}
           </span>
         </div>
 
@@ -124,10 +118,7 @@ export default function PagoScreen({ total, onConfirmar, onBack }: Props) {
               onClick={() => presionar(k)}
               style={{
                 ...btnNumeric,
-                background:
-                  k === "CE" ? "#fff3cd" :
-                  k === "⌫" ? "#fdecea" :
-                  colors.white,
+                background: k === "CE" ? "#fff3cd" : k === "⌫" ? "#fdecea" : colors.white,
               }}
             >
               {k}
@@ -135,9 +126,7 @@ export default function PagoScreen({ total, onConfirmar, onBack }: Props) {
           ))}
         </div>
 
-        {error && (
-          <p style={{ color: colors.danger, fontSize: 14, marginBottom: 12 }}>⚠️ {error}</p>
-        )}
+        {error && <p style={{ color: colors.danger, fontSize: 14, marginBottom: 12 }}>⚠️ {error}</p>}
 
         <button
           style={{ ...btnPrimary, opacity: monto >= total ? 1 : 0.5 }}
@@ -150,17 +139,13 @@ export default function PagoScreen({ total, onConfirmar, onBack }: Props) {
   );
 }
 
-// ── Estilos locales ──
 const metodoBtnStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "18px 20px",
-  marginBottom: 10,
-  borderRadius: 12,
-  border: "1px solid #e0e0e0",
-  background: "#fafafa",
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  gap: 16,
-  fontSize: 16,
+  width: "100%", padding: "18px 20px", marginBottom: 10,
+  borderRadius: 12, border: "1px solid #e0e0e0", background: "#fafafa",
+  cursor: "pointer", display: "flex", alignItems: "center", gap: 16, fontSize: 16,
+};
+
+const filaStyle: React.CSSProperties = {
+  display: "flex", justifyContent: "space-between",
+  alignItems: "center", marginBottom: 12,
 };
