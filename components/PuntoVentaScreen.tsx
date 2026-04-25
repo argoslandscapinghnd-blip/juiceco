@@ -9,9 +9,9 @@ import { Sucursal } from "./ui/types";
 import { supabase } from "@/supabase";
 
 interface SucursalConEstado extends Sucursal {
-  ocupada:        boolean;
-  cajeroActivo:   string | null;
-  sesionId:       number | null;
+  ocupada:      boolean;
+  cajeroActivo: string | null;
+  sesionId:     number | null;
 }
 
 interface Props {
@@ -21,10 +21,10 @@ interface Props {
 }
 
 export default function PuntoVentaScreen({ esAdmin, onSeleccionar, onBack }: Props) {
-  const [sucursales,  setSucursales]  = useState<SucursalConEstado[]>([]);
-  const [cargando,    setCargando]    = useState(true);
-  const [liberando,   setLiberando]   = useState<number | null>(null);
-  const [confirmar,   setConfirmar]   = useState<SucursalConEstado | null>(null);
+  const [sucursales, setSucursales] = useState<SucursalConEstado[]>([]);
+  const [cargando,   setCargando]   = useState(true);
+  const [liberando,  setLiberando]  = useState<number | null>(null);
+  const [confirmar,  setConfirmar]  = useState<SucursalConEstado | null>(null);
 
   const cargar = async () => {
     setCargando(true);
@@ -70,33 +70,29 @@ export default function PuntoVentaScreen({ esAdmin, onSeleccionar, onBack }: Pro
     cargar();
   };
 
-  // ── Modal de confirmación ──
+  // ── Modal confirmar liberación ──
   if (confirmar) {
     return (
       <section>
         <div style={{ ...cardStyle, textAlign: "center", padding: "32px 24px" }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔓</div>
-          <h2 style={{ marginTop: 0, fontSize: 18, color: colors.textPrimary }}>
-            ¿Liberar sucursal?
-          </h2>
+          <h2 style={{ marginTop: 0, fontSize: 18 }}>¿Liberar sucursal?</h2>
           <p style={{ color: colors.textMuted, fontSize: 14, marginBottom: 4 }}>
             <strong>{confirmar.codigo} - {confirmar.nombre}</strong>
           </p>
-          <p style={{ color: colors.textMuted, fontSize: 14, marginBottom: 24 }}>
+          <p style={{ color: colors.textMuted, fontSize: 14, marginBottom: 16 }}>
             En uso por: <strong style={{ color: colors.danger }}>{confirmar.cajeroActivo}</strong>
           </p>
-          <p style={{ fontSize: 13, color: colors.textMuted, marginBottom: 24, background: "#fff3cd", padding: "10px 14px", borderRadius: 8 }}>
+          <p style={{ fontSize: 13, background: "#fff3cd", padding: "10px 14px", borderRadius: 8, marginBottom: 24 }}>
             ⚠️ La sesión se cerrará sin registrar cierre de caja. Úsalo solo en emergencias.
           </p>
-
           <button
             style={{ width: "100%", padding: 16, borderRadius: 10, border: "none", background: colors.danger, color: "white", fontWeight: "bold", fontSize: 16, cursor: "pointer", marginBottom: 10, opacity: liberando === confirmar.id ? 0.7 : 1 }}
             onClick={() => liberarSucursal(confirmar)}
             disabled={liberando === confirmar.id}
           >
-            {liberando === confirmar.id ? "Liberando..." : "🔓 SÍ, LIBERAR SUCURSAL"}
+            {liberando === confirmar.id ? "Liberando..." : "🔓 SÍ, LIBERAR"}
           </button>
-
           <button
             style={{ width: "100%", padding: 16, borderRadius: 10, border: `1px solid ${colors.border}`, background: "white", fontWeight: "bold", fontSize: 16, cursor: "pointer" }}
             onClick={() => setConfirmar(null)}
@@ -112,10 +108,15 @@ export default function PuntoVentaScreen({ esAdmin, onSeleccionar, onBack }: Pro
     <section>
       <Header titulo="Seleccione punto de venta" onBack={onBack} />
 
-      {cargando ? (
-        <div style={{ textAlign: "center", color: colors.textMuted, padding: 40 }}>
-          Cargando sucursales...
+      {/* Leyenda para admin */}
+      {esAdmin && (
+        <div style={{ background: "#e3f2fd", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#1565c0" }}>
+          🛡️ <strong>Modo Admin:</strong> Puedes vender en cualquier sucursal libre o liberar las ocupadas.
         </div>
+      )}
+
+      {cargando ? (
+        <div style={{ textAlign: "center", color: colors.textMuted, padding: 40 }}>Cargando sucursales...</div>
       ) : sucursales.length === 0 ? (
         <div style={{ ...cardStyle, textAlign: "center", color: colors.textMuted, padding: 40 }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🏪</div>
@@ -126,9 +127,7 @@ export default function PuntoVentaScreen({ esAdmin, onSeleccionar, onBack }: Pro
           <div
             key={s.id}
             style={{
-              width: "100%",
-              marginBottom: 10,
-              borderRadius: 12,
+              marginBottom: 10, borderRadius: 12,
               border: `1px solid ${s.ocupada ? "#e0e0e0" : colors.border}`,
               background: s.ocupada ? "#f9f9f9" : colors.white,
               overflow: "hidden",
@@ -138,39 +137,29 @@ export default function PuntoVentaScreen({ esAdmin, onSeleccionar, onBack }: Pro
           >
             {/* Marca de agua EN USO */}
             {s.ocupada && (
-              <div style={{
-                position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                pointerEvents: "none",
-              }}>
-                <span style={{
-                  fontWeight: "bold", color: colors.danger, opacity: 0.12,
-                  transform: "rotate(-20deg)", fontSize: "28px",
-                  letterSpacing: 2, textTransform: "uppercase", whiteSpace: "nowrap",
-                }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                <span style={{ fontWeight: "bold", color: colors.danger, opacity: 0.12, transform: "rotate(-20deg)", fontSize: "28px", letterSpacing: 2, textTransform: "uppercase", whiteSpace: "nowrap" }}>
                   EN USO
                 </span>
               </div>
             )}
 
-            {/* Fila principal — clickeable si no está ocupada */}
+            {/* Fila principal */}
             <button
-              disabled={s.ocupada}
+              disabled={s.ocupada && !esAdmin}
               onClick={() => !s.ocupada && onSeleccionar(s.id, `${s.codigo} - ${s.nombre}`)}
               style={{
                 width: "100%", padding: "16px 18px", background: "transparent",
                 border: "none", cursor: s.ocupada ? "not-allowed" : "pointer",
                 textAlign: "left", display: "flex", justifyContent: "space-between",
-                alignItems: "center", opacity: s.ocupada ? 0.65 : 1,
+                alignItems: "center", opacity: s.ocupada ? 0.7 : 1,
               }}
             >
               <div>
                 <div style={{ fontWeight: "bold", color: colors.textPrimary, fontSize: 15 }}>
                   {s.codigo} - {s.nombre}
                 </div>
-                <div style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>
-                  📍 {s.ciudad}
-                </div>
+                <div style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>📍 {s.ciudad}</div>
                 {s.ocupada && s.cajeroActivo && (
                   <div style={{ fontSize: 12, color: colors.danger, marginTop: 4, fontWeight: "bold" }}>
                     🔒 En uso por: {s.cajeroActivo}
@@ -188,18 +177,14 @@ export default function PuntoVentaScreen({ esAdmin, onSeleccionar, onBack }: Pro
               </div>
             </button>
 
-            {/* Botón liberar — solo para admin y solo si está ocupada */}
+            {/* Botones admin para sucursales ocupadas */}
             {esAdmin && s.ocupada && (
-              <div style={{ padding: "0 18px 14px", display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ padding: "0 18px 14px", display: "flex", gap: 8, justifyContent: "flex-end" }}>
                 <button
                   onClick={() => setConfirmar(s)}
-                  style={{
-                    padding: "6px 14px", borderRadius: 8, border: "none",
-                    background: "#fdecea", color: colors.danger,
-                    fontWeight: "bold", fontSize: 12, cursor: "pointer",
-                  }}
+                  style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#fdecea", color: colors.danger, fontWeight: "bold", fontSize: 12, cursor: "pointer" }}
                 >
-                  🔓 Liberar sucursal
+                  🔓 Liberar
                 </button>
               </div>
             )}
