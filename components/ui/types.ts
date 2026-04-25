@@ -1,6 +1,6 @@
 export type Pantalla =
   | "login" | "punto" | "caja" | "menu" | "cantidad" | "carrito"
-  | "factura" | "pago" | "confirmacion" | "mi_turno"
+  | "factura" | "pago" | "confirmacion" | "mi_turno" | "cierre_caja"
   | "admin" | "admin_usuarios" | "admin_nuevo_usuario" | "admin_editar_usuario"
   | "admin_sucursales" | "admin_nueva_sucursal" | "admin_editar_sucursal"
   | "admin_maestros"

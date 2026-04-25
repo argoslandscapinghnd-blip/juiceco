@@ -13,6 +13,7 @@ import FacturaScreen      from "@/components/FacturaScreen";
 import PagoScreen         from "@/components/PagoScreen";
 import ConfirmacionScreen from "@/components/ConfirmacionScreen";
 import MiTurnoScreen      from "@/components/MiTurnoScreen";
+import CierreCajaScreen   from "@/components/CierreCajaScreen";
 import AdminMenuScreen    from "@/components/AdminMenuScreen";
 import MaestrosScreen     from "@/components/MaestrosScreen";
 import UsuariosScreen     from "@/components/UsuariosScreen";
@@ -65,6 +66,13 @@ export default function Home() {
   const cerrarSesionCajero = () => {
     setCarrito([]); setProductoActual(null); setMontoRecibido(undefined);
     setConFactura(false); setDatosFactura(undefined);
+    setUsuarioActual(null); setPantalla("login");
+  };
+
+  const handleCierreCaja = () => {
+    // Limpiar sesión y volver al login
+    setSesionCajaId(0); setSucursalId(0); setPuntoNombre(""); setFondoInicial(0);
+    setCarrito([]); setProductoActual(null);
     setUsuarioActual(null); setPantalla("login");
   };
 
@@ -140,7 +148,16 @@ export default function Home() {
         {pantalla === "mi_turno" && (
           <MiTurnoScreen sesionCajaId={sesionCajaId} sucursalId={sucursalId}
             fondoInicial={fondoInicial} usuario={usuarioActual?.nombre ?? ""}
-            onBack={() => setPantalla("menu")} onCerrarCaja={() => alert("Cierre de caja — próximamente")}
+            onBack={() => setPantalla("menu")}
+            onCerrarCaja={() => setPantalla("cierre_caja")}
+          />
+        )}
+        {pantalla === "cierre_caja" && (
+          <CierreCajaScreen
+            sesionCajaId={sesionCajaId} sucursalId={sucursalId}
+            fondoInicial={fondoInicial} usuario={usuarioActual?.nombre ?? ""}
+            onCerrado={handleCierreCaja}
+            onBack={() => setPantalla("mi_turno")}
           />
         )}
 
@@ -155,12 +172,7 @@ export default function Home() {
           />
         )}
         {pantalla === "admin_maestros" && (
-          <MaestrosScreen
-            onBebidas={() => setPantalla("admin_bebidas")}
-            onUnidades={() => setPantalla("admin_unidades")}
-            onInsumos={() => setPantalla("admin_insumos")}
-            onBack={() => setPantalla("admin")}
-          />
+          <MaestrosScreen onBebidas={() => setPantalla("admin_bebidas")} onUnidades={() => setPantalla("admin_unidades")} onInsumos={() => setPantalla("admin_insumos")} onBack={() => setPantalla("admin")} />
         )}
         {pantalla === "admin_usuarios" && (
           <UsuariosScreen onNuevo={() => { setUsuarioEditar(undefined); setPantalla("admin_nuevo_usuario"); }} onEditar={(u) => { setUsuarioEditar(u); setPantalla("admin_editar_usuario"); }} onBack={() => setPantalla("admin")} />
