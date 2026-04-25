@@ -9,6 +9,7 @@ interface Props {
   onMaestros:     () => void;
   onReportes:     () => void;
   onEmailDestinatarios: () => void;
+  onEnviarDashboard:    () => void;
   onModoCajero:   () => void;
   onCerrarSesion: () => void;
 }
@@ -22,7 +23,7 @@ const modulos = [
 ];
 
 export default function AdminMenuScreen({
-  usuario, onUsuarios, onSucursales, onMaestros, onReportes, onEmailDestinatarios, onModoCajero, onCerrarSesion,
+  usuario, onUsuarios, onSucursales, onMaestros, onReportes, onEmailDestinatarios, onEnviarDashboard, onModoCajero, onCerrarSesion,
 }: Props) {
   const handlers: Record<string, () => void> = {
     usuarios: onUsuarios, sucursales: onSucursales, maestros: onMaestros, reportes: onReportes, email: onEmailDestinatarios,
@@ -41,6 +42,9 @@ export default function AdminMenuScreen({
         <div style={{ fontWeight: "bold", fontSize: 18, color: colors.primaryDark }}>🛡️ {usuario}</div>
         <div style={{ fontSize: 12, color: colors.primary, marginTop: 4 }}>Panel de Administrador</div>
       </div>
+      <button style={{ ...btnPrimary, marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "#0284c7" }} onClick={onEnviarDashboard}>
+        <span style={{ fontSize: 20 }}>📧</span><span>ENVIAR DASHBOARD POR EMAIL</span>
+      </button>
       <button style={{ ...btnPrimary, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }} onClick={onModoCajero}>
         <span style={{ fontSize: 20 }}>🧾</span><span>MODO CAJERO — Iniciar venta</span>
       </button>

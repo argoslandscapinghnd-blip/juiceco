@@ -58,6 +58,15 @@ export default function Home() {
   const totalCarrito = carrito.reduce((s, i) => s + i.cantidad * i.precio, 0);
   const esAdmin = usuarioActual?.rol === "administrador";
 
+  const handleEnviarDashboard = async () => {
+    try {
+      const res = await fetch("/api/dashboard-email", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) alert(`✅ Dashboard enviado a ${data.enviado_a} destinatario(s)`);
+      else alert(`⚠️ ${data.msg || data.error || "Error al enviar"}`);
+    } catch { alert("Error al enviar el email"); }
+  };
+
   const handleLogin = (u: Usuario, sesionActiva?: { id: number; sucursal_id: number; fondo_inicial: number; sucursal: { nombre: string; codigo: string } }) => {
     setSucursalId(0); setPuntoNombre(""); setSesionCajaId(0); setFondoInicial(0);
     setCarrito([]); setProductoActual(null); setMontoRecibido(undefined);
@@ -212,6 +221,7 @@ export default function Home() {
             onMaestros={() => setPantalla("admin_maestros")}
             onReportes={() => setPantalla("admin_dashboard")}
             onEmailDestinatarios={() => setPantalla("admin_email_destinatarios")}
+            onEnviarDashboard={handleEnviarDashboard}
             onModoCajero={() => setPantalla("punto")}
             onCerrarSesion={() => { setUsuarioActual(null); setPantalla("login"); }}
           />
