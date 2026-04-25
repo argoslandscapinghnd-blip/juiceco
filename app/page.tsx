@@ -45,6 +45,14 @@ export default function Home() {
   const [bebidaEditar,   setBebidaEditar]   = useState<Producto | undefined>();
   const [insumoEditar,   setInsumoEditar]   = useState<Insumo | undefined>();
 
+  // Para cierre de caja (puede ser propio o de otro cajero)
+  const [cierreSesionId,    setCierreSesionId]    = useState<number>(0);
+  const [cierreSucursalId,  setCierreSucursalId]  = useState<number>(0);
+  const [cierreFondo,       setCierreFondo]       = useState<number>(0);
+  const [cierreCajero,      setCierreCajero]      = useState<string>("");
+  const [cierreCerradoPor,  setCierreCerradoPor]  = useState<string | undefined>();
+  const [cierreOrigen,      setCierreOrigen]      = useState<"menu" | "punto">("menu");
+
   const totalCarrito = carrito.reduce((s, i) => s + i.cantidad * i.precio, 0);
   const esAdmin = usuarioActual?.rol === "administrador";
 
@@ -69,11 +77,40 @@ export default function Home() {
     setUsuarioActual(null); setPantalla("login");
   };
 
-  const handleCierreCaja = () => {
-    // Limpiar sesión y volver al login
-    setSesionCajaId(0); setSucursalId(0); setPuntoNombre(""); setFondoInicial(0);
-    setCarrito([]); setProductoActual(null);
-    setUsuarioActual(null); setPantalla("login");
+  // Abre el cierre de caja desde Mi Turno (cajero cerrando su propia caja)
+  const abrirCierrePropioDesdeMenu = () => {
+    setCierreSesionId(sesionCajaId);
+    setCierreSucursalId(sucursalId);
+    setCierreFondo(fondoInicial);
+    setCierreCajero(usuarioActual?.nombre ?? "");
+    setCierreCerradoPor(undefined);
+    setCierreOrigen("menu");
+    setPantalla("cierre_caja");
+  };
+
+  // Abre el cierre de caja desde Punto de Venta (admin cerrando cualquier caja)
+  const abrirCierreDesidePunto = (sesId: number, sucId: number, fondo: number, cajero: string, sucNombre: string) => {
+    setCierreSesionId(sesId);
+    setCierreSucursalId(sucId);
+    setCierreFondo(fondo);
+    setCierreCajero(cajero);
+    // Si el cajero es diferente al usuario actual → admin cerrando caja de otro
+    const esMiaCaja = cajero === usuarioActual?.nombre;
+    setCierreCerradoPor(esMiaCaja ? undefined : usuarioActual?.nombre);
+    setCierreOrigen("punto");
+    setPantalla("cierre_caja");
+  };
+
+  const handleCierreCajaCompletado = () => {
+    // Si era mi propia caja → limpiar sesión y logout
+    if (!cierreCerradoPor) {
+      setSesionCajaId(0); setSucursalId(0); setPuntoNombre(""); setFondoInicial(0);
+      setCarrito([]); setProductoActual(null);
+      setUsuarioActual(null); setPantalla("login");
+    } else {
+      // Si era de otro cajero → volver a punto de venta
+      setPantalla("punto");
+    }
   };
 
   const agregarAlCarrito = (cantidad: number) => {
@@ -98,9 +135,11 @@ export default function Home() {
         {pantalla === "login" && <LoginScreen onIngresar={handleLogin} />}
 
         {pantalla === "punto" && (
-          <PuntoVentaScreen esAdmin={esAdmin} usuarioId={usuarioActual?.id}
+          <PuntoVentaScreen
+            esAdmin={esAdmin} usuarioId={usuarioActual?.id} usuarioNombre={usuarioActual?.nombre}
             onSeleccionar={(id, nombre) => { setSucursalId(id); setPuntoNombre(nombre); setPantalla("caja"); }}
             onContinuar={(id, nombre, sesionId) => { setSucursalId(id); setPuntoNombre(nombre); setSesionCajaId(sesionId); setPantalla("menu"); }}
+            onCerrarCaja={abrirCierreDesidePunto}
             onBack={() => setPantalla(esAdmin ? "admin" : "login")}
           />
         )}
@@ -149,15 +188,16 @@ export default function Home() {
           <MiTurnoScreen sesionCajaId={sesionCajaId} sucursalId={sucursalId}
             fondoInicial={fondoInicial} usuario={usuarioActual?.nombre ?? ""}
             onBack={() => setPantalla("menu")}
-            onCerrarCaja={() => setPantalla("cierre_caja")}
+            onCerrarCaja={abrirCierrePropioDesdeMenu}
           />
         )}
         {pantalla === "cierre_caja" && (
           <CierreCajaScreen
-            sesionCajaId={sesionCajaId} sucursalId={sucursalId}
-            fondoInicial={fondoInicial} usuario={usuarioActual?.nombre ?? ""}
-            onCerrado={handleCierreCaja}
-            onBack={() => setPantalla("mi_turno")}
+            sesionCajaId={cierreSesionId} sucursalId={cierreSucursalId}
+            fondoInicial={cierreFondo} cajeroNombre={cierreCajero}
+            cerradoPor={cierreCerradoPor}
+            onCerrado={handleCierreCajaCompletado}
+            onBack={() => setPantalla(cierreOrigen === "menu" ? "mi_turno" : "punto")}
           />
         )}
 
