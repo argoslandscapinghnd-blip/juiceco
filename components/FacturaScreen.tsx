@@ -21,11 +21,12 @@ interface ClienteRTN {
 
 export default function FacturaScreen({ onContinuar, onBack }: Props) {
   const [paso, setPaso] = useState<"elegir" | "datos">("elegir");
+  const [busqueda, setBusqueda] = useState("");
   const [rtn, setRtn] = useState("");
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
-  const [busqueda, setBusqueda] = useState("");
   const [clientes, setClientes] = useState<ClienteRTN[]>([]);
+  const [clienteBloqueado, setClienteBloqueado] = useState<ClienteRTN | null>(null);
   const [error, setError] = useState("");
 
   const rtnRef = useRef<HTMLInputElement>(null);
@@ -40,6 +41,26 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
     }
   }, [paso]);
 
+  useEffect(() => {
+    const rtnFinal = limpiarRTN(rtn);
+
+    if (rtnFinal.length !== 14) {
+      setClienteBloqueado(null);
+      return;
+    }
+
+    const clienteExistente = clientes.find((c) => c.rtn === rtnFinal);
+
+    if (clienteExistente) {
+      setClienteBloqueado(clienteExistente);
+      setNombre(clienteExistente.nombre ?? "");
+      setCorreo(clienteExistente.correo ?? "");
+      setError("");
+    } else {
+      setClienteBloqueado(null);
+    }
+  }, [rtn, clientes]);
+
   const limpiarRTN = (valor: string) => {
     return valor.replace(/\D/g, "").slice(0, 14);
   };
@@ -51,7 +72,7 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
       .eq("con_factura", true)
       .not("rtn", "is", null)
       .order("creada_en", { ascending: false })
-      .limit(100);
+      .limit(300);
 
     if (err) {
       console.error("Error cargando RTNs:", err.message);
@@ -65,7 +86,7 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
       const nombreGuardado = String(v.nombre_fiscal ?? "").trim();
       const correoGuardado = String(v.correo_fiscal ?? "").trim();
 
-      if (rtnGuardado && !mapa.has(rtnGuardado)) {
+      if (rtnGuardado.length === 14 && !mapa.has(rtnGuardado)) {
         mapa.set(rtnGuardado, {
           rtn: rtnGuardado,
           nombre: nombreGuardado,
@@ -80,10 +101,11 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
   const handleFacturaFormal = () => setPaso("datos");
 
   const seleccionarCliente = (cliente: ClienteRTN) => {
+    setBusqueda("");
     setRtn(cliente.rtn);
     setNombre(cliente.nombre ?? "");
     setCorreo(cliente.correo ?? "");
-    setBusqueda("");
+    setClienteBloqueado(cliente);
     setError("");
     setTimeout(() => rtnRef.current?.focus(), 50);
   };
@@ -101,6 +123,21 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
       return;
     }
 
+    const clienteExistente = clientes.find((c) => c.rtn === rtnFinal);
+
+    if (clienteExistente) {
+      const nombreExistente = (clienteExistente.nombre ?? "").trim().toLowerCase();
+      const nombreIngresado = nombre.trim().toLowerCase();
+
+      if (nombreIngresado !== nombreExistente) {
+        setError(`Este RTN ya existe registrado como "${clienteExistente.nombre}". No puede usarse con otro nombre.`);
+        setNombre(clienteExistente.nombre ?? "");
+        setCorreo(clienteExistente.correo ?? "");
+        setClienteBloqueado(clienteExistente);
+        return;
+      }
+    }
+
     if (!nombre.trim()) {
       setError("El nombre o razón social es obligatorio.");
       return;
@@ -115,19 +152,21 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
     });
   };
 
-  const textoBusqueda = busqueda.trim().toLowerCase().replace(/\D/g, "");
-  const textoNombreBusqueda = busqueda.trim().toLowerCase();
+  const textoBusqueda = busqueda.trim().toLowerCase();
+  const textoBusquedaNumerico = busqueda.replace(/\D/g, "");
 
   const clientesFiltrados =
-    busqueda.trim().length > 0
+    textoBusqueda.length > 0
       ? clientes
           .filter((c) => {
             const rtnCliente = c.rtn.toLowerCase();
             const nombreCliente = c.nombre.toLowerCase();
+            const correoCliente = (c.correo ?? "").toLowerCase();
 
             return (
-              rtnCliente.includes(textoBusqueda) ||
-              nombreCliente.includes(textoNombreBusqueda)
+              rtnCliente.includes(textoBusquedaNumerico) ||
+              nombreCliente.includes(textoBusqueda) ||
+              correoCliente.includes(textoBusqueda)
             );
           })
           .slice(0, 8)
@@ -179,22 +218,9 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
       <Header titulo="Factura formal" onBack={() => setPaso("elegir")} />
 
       <div style={cardStyle}>
-        <label style={labelStyle}>RTN</label>
-        <input
-          ref={rtnRef}
-          placeholder="08011987012345"
-          value={rtn}
-          onChange={(e) => {
-            setRtn(limpiarRTN(e.target.value));
-            setError("");
-          }}
-          style={inputStyle}
-          inputMode="numeric"
-        />
-
         <label style={labelStyle}>Buscar cliente anterior</label>
         <input
-          placeholder="Buscar por RTN o nombre"
+          placeholder="Buscar por RTN, nombre o correo"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           style={inputStyle}
@@ -213,6 +239,11 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
                 <span style={{ color: colors.textMuted }}>
                   {cliente.nombre || "Sin nombre fiscal"}
                 </span>
+                {cliente.correo && (
+                  <span style={{ color: colors.textMuted, fontSize: 12 }}>
+                    {cliente.correo}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -220,7 +251,26 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
 
         {busqueda.trim().length > 0 && clientesFiltrados.length === 0 && (
           <p style={{ fontSize: 12, color: colors.textMuted, marginTop: -8, marginBottom: 14 }}>
-            No se encontraron clientes con ese RTN o nombre.
+            No se encontraron clientes con ese RTN, nombre o correo.
+          </p>
+        )}
+
+        <label style={labelStyle}>RTN</label>
+        <input
+          ref={rtnRef}
+          placeholder="08011987012345"
+          value={rtn}
+          onChange={(e) => {
+            setRtn(limpiarRTN(e.target.value));
+            setError("");
+          }}
+          style={inputStyle}
+          inputMode="numeric"
+        />
+
+        {clienteBloqueado && (
+          <p style={{ fontSize: 12, color: colors.primary, marginTop: -8, marginBottom: 12 }}>
+            RTN existente. Datos cargados automáticamente y bloqueados para evitar duplicados.
           </p>
         )}
 
@@ -229,7 +279,11 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
           placeholder="Juan Pérez"
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
-          style={inputStyle}
+          style={{
+            ...inputStyle,
+            opacity: clienteBloqueado ? 0.7 : 1,
+          }}
+          disabled={!!clienteBloqueado}
         />
 
         <label style={labelStyle}>Correo (opcional)</label>
@@ -237,8 +291,12 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
           placeholder="juanperez@gmail.com"
           value={correo}
           onChange={(e) => setCorreo(e.target.value)}
-          style={inputStyle}
+          style={{
+            ...inputStyle,
+            opacity: clienteBloqueado ? 0.7 : 1,
+          }}
           type="email"
+          disabled={!!clienteBloqueado}
         />
 
         {error && (
