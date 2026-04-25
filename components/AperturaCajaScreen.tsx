@@ -16,14 +16,12 @@ interface Props {
   onBack:     () => void;
 }
 
-const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
-
 export default function AperturaCajaScreen({
   sucursalId, punto, usuario, usuarioId, onAbrir, onBack,
 }: Props) {
-  const [fondoTexto, setFondoTexto] = useState("");
-  const [error,      setError]      = useState("");
-  const [cargando,   setCargando]   = useState(false);
+  const [fondoRaw, setFondoRaw] = useState(""); // solo dígitos y punto
+  const [error,    setError]    = useState("");
+  const [cargando, setCargando] = useState(false);
 
   const fecha = new Date().toLocaleDateString("es-HN", {
     day: "2-digit", month: "2-digit", year: "numeric",
@@ -31,18 +29,30 @@ export default function AperturaCajaScreen({
     hour: "2-digit", minute: "2-digit",
   });
 
-  // Solo permite dígitos y un punto decimal
-  const handleCambio = (val: string) => {
-    const limpio = val.replace(/[^0-9.]/g, "");
-    const partes = limpio.split(".");
-    if (partes.length > 2) return; // no más de un punto
-    setFondoTexto(limpio);
+  // Formatea el número con comas para mostrar en el input
+  const formatearInput = (raw: string): string => {
+    if (!raw) return "";
+    const [entera, decimal] = raw.split(".");
+    const enteraFmt = parseInt(entera || "0").toLocaleString("en-US");
+    return decimal !== undefined ? `${enteraFmt}.${decimal}` : enteraFmt;
   };
 
-  const valorNumerico = parseFloat(fondoTexto) || 0;
+  // Al cambiar el input, guardamos solo dígitos y un punto
+  const handleCambio = (val: string) => {
+    // Quitar todo excepto dígitos y punto
+    const soloNumeros = val.replace(/[^0-9.]/g, "");
+    // No más de un punto decimal
+    const partes = soloNumeros.split(".");
+    if (partes.length > 2) return;
+    // No más de 2 decimales
+    if (partes[1] && partes[1].length > 2) return;
+    setFondoRaw(soloNumeros);
+  };
+
+  const valorNumerico = parseFloat(fondoRaw) || 0;
 
   const handleAbrir = async () => {
-    if (!fondoTexto.trim() || isNaN(valorNumerico) || valorNumerico < 0) {
+    if (!fondoRaw.trim() || isNaN(valorNumerico) || valorNumerico < 0) {
       setError("Ingresa un fondo inicial válido.");
       return;
     }
@@ -62,7 +72,6 @@ export default function AperturaCajaScreen({
       .single();
 
     setCargando(false);
-
     if (err) { setError("Error al abrir caja: " + err.message); return; }
     onAbrir(data.id, valorNumerico);
   };
@@ -82,18 +91,11 @@ export default function AperturaCajaScreen({
 
         <input
           placeholder="0.00"
-          value={fondoTexto}
+          value={formatearInput(fondoRaw)}
           onChange={(e) => handleCambio(e.target.value)}
           inputMode="decimal"
           style={{ ...inputStyle, fontSize: 28, fontWeight: "bold", textAlign: "center" }}
         />
-
-        {/* Preview con separador de miles */}
-        {valorNumerico > 0 && (
-          <div style={{ textAlign: "center", fontSize: 16, color: colors.primary, fontWeight: "bold", marginTop: 4, marginBottom: 8 }}>
-            L {fmt(valorNumerico)}
-          </div>
-        )}
 
         {error && (
           <p style={{ color: colors.danger, fontSize: 14, marginBottom: 12 }}>⚠️ {error}</p>
