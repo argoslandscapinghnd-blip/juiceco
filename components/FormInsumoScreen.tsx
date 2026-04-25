@@ -10,6 +10,7 @@ import { supabase } from "@/supabase";
 interface Insumo {
   id: number; nombre: string; unidad: string;
   tipo: "ingrediente" | "empaque"; costo_unitario: number; activo: boolean;
+  costo_actualizado_en?: string;
 }
 interface Unidad { id: number; nombre: string; abreviatura: string; }
 interface Props { insumoEditar?: Insumo; onGuardar: () => void; onBack: () => void; }
@@ -17,13 +18,17 @@ interface Props { insumoEditar?: Insumo; onGuardar: () => void; onBack: () => vo
 export default function FormInsumoScreen({ insumoEditar, onGuardar, onBack }: Props) {
   const editando = !!insumoEditar;
 
-  const [nombre,   setNombre]   = useState(insumoEditar?.nombre         ?? "");
-  const [unidad,   setUnidad]   = useState(insumoEditar?.unidad         ?? "");
-  const [tipo,     setTipo]     = useState<"ingrediente" | "empaque">(insumoEditar?.tipo ?? "ingrediente");
-  const [costo,    setCosto]    = useState(insumoEditar?.costo_unitario?.toString() ?? "");
-  const [unidades, setUnidades] = useState<Unidad[]>([]);
-  const [error,    setError]    = useState("");
-  const [cargando, setCargando] = useState(false);
+  const [nombre,    setNombre]    = useState(insumoEditar?.nombre         ?? "");
+  const [unidad,    setUnidad]    = useState(insumoEditar?.unidad         ?? "");
+  const [tipo,      setTipo]      = useState<"ingrediente" | "empaque">(insumoEditar?.tipo ?? "ingrediente");
+  const [costo,     setCosto]     = useState(insumoEditar?.costo_unitario?.toString() ?? "");
+  const [unidades,  setUnidades]  = useState<Unidad[]>([]);
+  const [error,     setError]     = useState("");
+  const [cargando,  setCargando]  = useState(false);
+
+  // Detectar si el costo cambió para actualizar la fecha
+  const costoOriginal = insumoEditar?.costo_unitario?.toString() ?? "";
+  const costoChanged  = editando && costo !== costoOriginal;
 
   useEffect(() => {
     supabase.from("unidades").select("*").eq("activo", true).order("nombre")
@@ -38,14 +43,20 @@ export default function FormInsumoScreen({ insumoEditar, onGuardar, onBack }: Pr
     }
     setCargando(true); setError("");
 
+    const datos: any = {
+      nombre, unidad, tipo, costo_unitario: parseFloat(costo),
+    };
+
+    // Solo actualizar la fecha si el costo cambió o es nuevo
+    if (!editando || costoChanged) {
+      datos.costo_actualizado_en = new Date().toISOString();
+    }
+
     if (editando) {
-      const { error: err } = await supabase.from("insumos_maestro")
-        .update({ nombre, unidad, tipo, costo_unitario: parseFloat(costo) })
-        .eq("id", insumoEditar.id);
+      const { error: err } = await supabase.from("insumos_maestro").update(datos).eq("id", insumoEditar.id);
       if (err) { setError("Error: " + err.message); setCargando(false); return; }
     } else {
-      const { error: err } = await supabase.from("insumos_maestro")
-        .insert({ nombre, unidad, tipo, costo_unitario: parseFloat(costo), activo: true });
+      const { error: err } = await supabase.from("insumos_maestro").insert({ ...datos, activo: true });
       if (err) { setError("Error: " + err.message); setCargando(false); return; }
     }
     setCargando(false);
@@ -81,9 +92,7 @@ export default function FormInsumoScreen({ insumoEditar, onGuardar, onBack }: Pr
         <label style={labelStyle}>Nombre</label>
         <input
           placeholder={tipo === "ingrediente" ? "Ej: Limón, Azúcar..." : "Ej: Vaso, Pajilla..."}
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-          style={inputStyle}
+          value={nombre} onChange={(e) => setNombre(e.target.value)} style={inputStyle}
         />
 
         {/* Unidad */}
@@ -110,14 +119,16 @@ export default function FormInsumoScreen({ insumoEditar, onGuardar, onBack }: Pr
           Costo por {unidadSelec ? `${unidadSelec.nombre.toLowerCase()} (${unidadSelec.abreviatura})` : "unidad"} (L.)
         </label>
         <input
-  placeholder="0.000000"
-  value={costo}
-  onChange={(e) => setCosto(e.target.value)}
-  type="number"
-  min="0"
-  step="0.000001"
-  style={{ ...inputStyle, fontSize: 18, fontWeight: "bold" }}
-/>
+          placeholder="0.00" value={costo} onChange={(e) => setCosto(e.target.value)}
+          type="number" min="0" style={{ ...inputStyle, fontSize: 20, fontWeight: "bold" }}
+        />
+
+        {/* Aviso si cambió el costo */}
+        {costoChanged && (
+          <div style={{ background: "#fff3cd", borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontSize: 13 }}>
+            📅 Se actualizará la fecha de último cambio de costo.
+          </div>
+        )}
 
         {/* Preview */}
         {costo && parseFloat(costo) > 0 && unidad && (
