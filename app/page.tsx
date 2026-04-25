@@ -50,17 +50,33 @@ export default function Home() {
 
   const totalCarrito = carrito.reduce((s, i) => s + i.cantidad * i.precio, 0);
 
-  const handleLogin = (u: Usuario, sesionActiva?: { id: number; sucursal_id: number; fondo_inicial: number; sucursal: { nombre: string; codigo: string } }) => {
+  const handleLogin = (
+    u: Usuario,
+    sesionActiva?: { id: number; sucursal_id: number; fondo_inicial: number; sucursal: { nombre: string; codigo: string } }
+  ) => {
     setUsuarioActual(u);
-    if (u.rol === "administrador") { setPantalla("admin"); return; }
+
+    // Si tiene sesión activa de caja, cargar esos datos siempre (aplica a cajero y admin)
     if (sesionActiva) {
       setSesionCajaId(sesionActiva.id);
       setSucursalId(sesionActiva.sucursal_id);
       setFondoInicial(sesionActiva.fondo_inicial ?? 0);
       setPuntoNombre(`${sesionActiva.sucursal.codigo} - ${sesionActiva.sucursal.nombre}`);
+    }
+
+    // Admin → siempre va a su panel, pero con datos de caja ya cargados
+    if (u.rol === "administrador") {
+      setPantalla("admin");
+      return;
+    }
+
+    // Cajero con sesión activa → directo al menú
+    if (sesionActiva) {
       setPantalla("menu");
       return;
     }
+
+    // Sin sesión → seleccionar sucursal
     setPantalla("punto");
   };
 
@@ -197,7 +213,7 @@ export default function Home() {
             onSucursales={() => setPantalla("admin_sucursales")}
             onInventario={() => alert("Próximamente")}
             onReportes={() => alert("Próximamente")}
-            onModoCajero={() => setPantalla("punto")}
+            onModoCajero={() => sesionCajaId > 0 ? setPantalla("menu") : setPantalla("punto")}
             onCerrarSesion={() => { setUsuarioActual(null); setPantalla("login"); }}
           />
         )}
