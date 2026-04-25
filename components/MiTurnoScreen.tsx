@@ -1,7 +1,6 @@
 "use client";
 // ─────────────────────────────────────────────
 //  JUICE CO. — Mi Turno (Cajero)
-//  Ventas del turno + inventario + cierre de caja
 // ─────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { Header, Divider } from "./ui/components";
@@ -9,6 +8,12 @@ import { colors, cardStyle, btnPrimary } from "./ui/styles";
 import { supabase } from "@/supabase";
 
 const META_VENTA_DIARIA = 3000;
+
+const money = (n: number) =>
+  Number(n || 0).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
 interface ResumenVentas {
   total: number;
@@ -98,7 +103,7 @@ export default function MiTurnoScreen({
     const conteo: Record<string, number> = {};
 
     items.forEach((item: any) => {
-      const nombreProducto = item.nombre_producto || "Producto sin nombre";
+      const nombreProducto = item.nombre_producto || "Producto";
       const cantidad = Number(item.cantidad || 0);
       conteo[nombreProducto] = (conteo[nombreProducto] ?? 0) + cantidad;
     });
@@ -151,124 +156,54 @@ export default function MiTurnoScreen({
           👤 {usuario}
         </div>
         <div style={{ fontSize: 12, color: colors.primary, marginTop: 4 }}>
-          Fondo inicial: <strong>L {Number(fondoInicial).toFixed(2)}</strong>
+          Fondo inicial: <strong>L {money(fondoInicial)}</strong>
         </div>
       </div>
 
       <div style={{ ...cardStyle, marginBottom: 16 }}>
-        <h3 style={{ margin: "0 0 12px", fontSize: 15, color: colors.textPrimary }}>
-          📊 Ventas del turno
-        </h3>
+        <h3 style={{ margin: "0 0 12px", fontSize: 15 }}>📊 Ventas del turno</h3>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-          <MetricaBox label="Total vendido" valor={`L ${resumen?.total.toFixed(2)}`} color={colors.primary} />
-          <MetricaBox label="Nº de ventas" valor={`${resumen?.numVentas}`} />
-          <MetricaBox label="Artículos vendidos" valor={`${resumen?.cantidadArticulos}`} />
-          <MetricaBox label="Meta diaria" valor={`L ${META_VENTA_DIARIA.toFixed(2)}`} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <MetricaBox label="Total vendido" valor={`L ${money(resumen!.total)}`} />
+          <MetricaBox label="Nº de ventas" valor={`${resumen!.numVentas}`} />
+          <MetricaBox label="Artículos vendidos" valor={`${resumen!.cantidadArticulos}`} />
+          <MetricaBox label="Meta diaria" valor={`L ${money(META_VENTA_DIARIA)}`} />
         </div>
 
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
-            <span style={{ color: colors.textMuted }}>Avance de meta diaria</span>
-            <strong style={{ color: colors.primary }}>{porcentajeMeta.toFixed(0)}%</strong>
+        <div style={{ marginTop: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+            <span>Avance</span>
+            <strong>{porcentajeMeta.toFixed(0)}%</strong>
           </div>
 
-          <div
-            style={{
-              width: "100%",
-              height: 12,
-              background: colors.border,
-              borderRadius: 999,
-              overflow: "hidden",
-            }}
-          >
+          <div style={{ height: 10, background: "#eee", borderRadius: 10 }}>
             <div
               style={{
                 width: `${porcentajeMeta}%`,
                 height: "100%",
                 background: colors.primary,
-                borderRadius: 999,
-                transition: "width 0.3s ease",
+                borderRadius: 10,
               }}
             />
           </div>
 
-          <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 6 }}>
-            L {resumen?.total.toFixed(2)} de L {META_VENTA_DIARIA.toFixed(2)}
+          <div style={{ fontSize: 12 }}>
+            L {money(resumen!.total)} de L {money(META_VENTA_DIARIA)}
           </div>
         </div>
 
         <Divider />
 
-        <FilaTurno label="💵 Efectivo" valor={`L ${resumen?.efectivo.toFixed(2)}`} />
-        <FilaTurno label="💳 Tarjeta" valor={`L ${resumen?.tarjeta.toFixed(2)}`} />
-        <FilaTurno label="📲 Transferencia" valor={`L ${resumen?.transferencia.toFixed(2)}`} />
+        <FilaTurno label="💵 Efectivo" valor={`L ${money(resumen!.efectivo)}`} />
+        <FilaTurno label="💳 Tarjeta" valor={`L ${money(resumen!.tarjeta)}`} />
+        <FilaTurno label="📲 Transferencia" valor={`L ${money(resumen!.transferencia)}`} />
 
         <Divider />
 
         <FilaTurno
           label="🏆 Más vendido"
-          valor={
-            resumen?.topProducto === "—"
-              ? "—"
-              : `${resumen?.topProducto} (${resumen?.topProductoCantidad})`
-          }
+          valor={`${resumen!.topProducto} (${resumen!.topProductoCantidad})`}
         />
-      </div>
-
-      <div style={{ ...cardStyle, marginBottom: 16 }}>
-        <h3 style={{ margin: "0 0 12px", fontSize: 15, color: colors.textPrimary }}>
-          📦 Inventario de la sucursal
-        </h3>
-
-        {insumos.length === 0 ? (
-          <p style={{ color: colors.textMuted, fontSize: 14, textAlign: "center" }}>
-            No hay insumos registrados para esta sucursal.
-          </p>
-        ) : (
-          insumos.map((ins) => {
-            const bajo = ins.stock_actual <= ins.stock_minimo;
-
-            return (
-              <div
-                key={ins.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "10px 0",
-                  borderBottom: `1px solid ${colors.border}`,
-                }}
-              >
-                <div>
-                  <span
-                    style={{
-                      fontWeight: "bold",
-                      fontSize: 14,
-                      color: bajo ? colors.danger : colors.textPrimary,
-                    }}
-                  >
-                    {bajo ? "⚠️ " : ""}
-                    {ins.nombre}
-                  </span>
-                  <span style={{ fontSize: 12, color: colors.textMuted, marginLeft: 6 }}>
-                    (mín. {ins.stock_minimo} {ins.unidad})
-                  </span>
-                </div>
-
-                <span
-                  style={{
-                    fontWeight: "bold",
-                    fontSize: 15,
-                    color: bajo ? colors.danger : colors.primary,
-                  }}
-                >
-                  {ins.stock_actual} {ins.unidad}
-                </span>
-              </div>
-            );
-          })
-        )}
       </div>
 
       <button style={{ ...btnPrimary, background: colors.danger }} onClick={onCerrarCaja}>
@@ -278,30 +213,20 @@ export default function MiTurnoScreen({
   );
 }
 
-function MetricaBox({
-  label,
-  valor,
-  color,
-}: {
-  label: string;
-  valor: string;
-  color?: string;
-}) {
+function MetricaBox({ label, valor }: { label: string; valor: string }) {
   return (
-    <div style={{ background: colors.primaryLight, borderRadius: 10, padding: "12px 14px" }}>
-      <div style={{ fontSize: 12, color: colors.textMuted, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontWeight: "bold", fontSize: 18, color: color ?? colors.textPrimary }}>
-        {valor}
-      </div>
+    <div style={{ background: colors.primaryLight, borderRadius: 10, padding: 12 }}>
+      <div style={{ fontSize: 12 }}>{label}</div>
+      <div style={{ fontWeight: "bold", fontSize: 18 }}>{valor}</div>
     </div>
   );
 }
 
 function FilaTurno({ label, valor }: { label: string; valor: string }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 14 }}>
-      <span style={{ color: colors.textMuted }}>{label}</span>
-      <span style={{ fontWeight: "bold", color: colors.textPrimary }}>{valor}</span>
+    <div style={{ display: "flex", justifyContent: "space-between", padding: 6 }}>
+      <span>{label}</span>
+      <strong>{valor}</strong>
     </div>
   );
 }
