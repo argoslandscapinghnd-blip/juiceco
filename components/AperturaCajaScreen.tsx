@@ -94,6 +94,7 @@ export default function AperturaCajaScreen({
           value={formatearInput(fondoRaw)}
           onChange={(e) => handleCambio(e.target.value)}
           inputMode="decimal"
+          autoFocus
           style={{ ...inputStyle, fontSize: 28, fontWeight: "bold", textAlign: "center" }}
         />
 
