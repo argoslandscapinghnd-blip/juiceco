@@ -40,33 +40,41 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
     }
   }, [paso]);
 
+  const limpiarRTN = (valor: string) => {
+    return valor.replace(/\D/g, "").slice(0, 14);
+  };
+
   const cargarRTNs = async () => {
-    const { data } = await supabase
+    const { data, error: err } = await supabase
       .from("ventas")
-      .select("factura_rtn, factura_nombre, factura_correo")
-      .not("factura_rtn", "is", null)
-      .order("id", { ascending: false })
+      .select("rtn, nombre_fiscal, correo_fiscal, creada_en")
+      .eq("con_factura", true)
+      .not("rtn", "is", null)
+      .order("creada_en", { ascending: false })
       .limit(100);
+
+    if (err) {
+      console.error("Error cargando RTNs:", err.message);
+      return;
+    }
 
     const mapa = new Map<string, ClienteRTN>();
 
     (data ?? []).forEach((v: any) => {
-      const rtnGuardado = String(v.factura_rtn ?? "").replace(/\D/g, "").slice(0, 14);
+      const rtnGuardado = limpiarRTN(String(v.rtn ?? ""));
+      const nombreGuardado = String(v.nombre_fiscal ?? "").trim();
+      const correoGuardado = String(v.correo_fiscal ?? "").trim();
 
-      if (rtnGuardado.length === 14 && !mapa.has(rtnGuardado)) {
+      if (rtnGuardado && !mapa.has(rtnGuardado)) {
         mapa.set(rtnGuardado, {
           rtn: rtnGuardado,
-          nombre: v.factura_nombre ?? "",
-          correo: v.factura_correo ?? "",
+          nombre: nombreGuardado,
+          correo: correoGuardado,
         });
       }
     });
 
     setClientes(Array.from(mapa.values()));
-  };
-
-  const limpiarRTN = (valor: string) => {
-    return valor.replace(/\D/g, "").slice(0, 14);
   };
 
   const handleFacturaFormal = () => setPaso("datos");
@@ -99,6 +107,7 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
     }
 
     setError("");
+
     onContinuar(true, {
       rtn: rtnFinal,
       nombre: nombre.trim(),
@@ -106,18 +115,22 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
     });
   };
 
-  const textoBusqueda = busqueda.trim().toLowerCase();
+  const textoBusqueda = busqueda.trim().toLowerCase().replace(/\D/g, "");
+  const textoNombreBusqueda = busqueda.trim().toLowerCase();
 
   const clientesFiltrados =
-    textoBusqueda.length > 0
+    busqueda.trim().length > 0
       ? clientes
           .filter((c) => {
             const rtnCliente = c.rtn.toLowerCase();
             const nombreCliente = c.nombre.toLowerCase();
 
-            return rtnCliente.includes(textoBusqueda) || nombreCliente.includes(textoBusqueda);
+            return (
+              rtnCliente.includes(textoBusqueda) ||
+              nombreCliente.includes(textoNombreBusqueda)
+            );
           })
-          .slice(0, 6)
+          .slice(0, 8)
       : [];
 
   if (paso === "elegir") {
@@ -197,13 +210,15 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
                 style={clienteBtn}
               >
                 <strong>{cliente.rtn}</strong>
-                <span style={{ color: colors.textMuted }}>{cliente.nombre}</span>
+                <span style={{ color: colors.textMuted }}>
+                  {cliente.nombre || "Sin nombre fiscal"}
+                </span>
               </button>
             ))}
           </div>
         )}
 
-        {textoBusqueda.length > 0 && clientesFiltrados.length === 0 && (
+        {busqueda.trim().length > 0 && clientesFiltrados.length === 0 && (
           <p style={{ fontSize: 12, color: colors.textMuted, marginTop: -8, marginBottom: 14 }}>
             No se encontraron clientes con ese RTN o nombre.
           </p>
