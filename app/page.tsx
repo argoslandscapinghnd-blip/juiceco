@@ -24,7 +24,6 @@ import FormBebidaScreen   from "@/components/FormBebidaScreen";
 import UnidadesScreen     from "@/components/UnidadesScreen";
 import InsumosScreen      from "@/components/InsumosScreen";
 import FormInsumoScreen   from "@/components/FormInsumoScreen";
-import RecetasScreen      from "@/components/RecetasScreen";
 
 export default function Home() {
   const [pantalla,       setPantalla]       = useState<Pantalla>("login");
@@ -145,7 +144,6 @@ export default function Home() {
           />
         )}
 
-        {/* ── ADMIN ── */}
         {pantalla === "admin" && (
           <AdminMenuScreen usuario={usuarioActual?.nombre ?? ""}
             onUsuarios={() => setPantalla("admin_usuarios")}
@@ -161,7 +159,6 @@ export default function Home() {
             onBebidas={() => setPantalla("admin_bebidas")}
             onUnidades={() => setPantalla("admin_unidades")}
             onInsumos={() => setPantalla("admin_insumos")}
-            onRecetas={() => setPantalla("admin_recetas")}
             onBack={() => setPantalla("admin")}
           />
         )}
@@ -191,9 +188,6 @@ export default function Home() {
         )}
         {(pantalla === "admin_nuevo_insumo" || pantalla === "admin_editar_insumo") && (
           <FormInsumoScreen insumoEditar={insumoEditar} onGuardar={() => { setInsumoEditar(undefined); setPantalla("admin_insumos"); }} onBack={() => setPantalla("admin_insumos")} />
-        )}
-        {pantalla === "admin_recetas" && (
-          <RecetasScreen onBack={() => setPantalla("admin_maestros")} />
         )}
 
       </div>

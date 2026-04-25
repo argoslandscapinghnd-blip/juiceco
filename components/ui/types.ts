@@ -5,7 +5,7 @@ export type Pantalla =
   | "admin_sucursales" | "admin_nueva_sucursal" | "admin_editar_sucursal"
   | "admin_maestros"
   | "admin_bebidas" | "admin_nueva_bebida" | "admin_editar_bebida"
-  | "admin_unidades" | "admin_recetas"
+  | "admin_unidades"
   | "admin_insumos" | "admin_nuevo_insumo" | "admin_editar_insumo";
 
 export type ItemCarrito = { nombre: string; cantidad: number; precio: number; };
