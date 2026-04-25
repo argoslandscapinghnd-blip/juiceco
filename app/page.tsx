@@ -22,12 +22,6 @@ import AdminMenuScreen    from "@/components/AdminMenuScreen";
 import UsuariosScreen     from "@/components/UsuariosScreen";
 import FormUsuarioScreen  from "@/components/FormUsuarioScreen";
 
-// ── Usuarios de prueba (después vendrán de Supabase) ──
-const USUARIOS_DEMO: Usuario[] = [
-  { id: "1", nombre: "Administrador", usuario: "admin", password: "admin123", telefono: "", rol: "administrador", activo: true },
-  { id: "2", nombre: "Ana López",     usuario: "ana",   password: "1234",     telefono: "9999-0001", rol: "cajero", activo: true },
-];
-
 export default function Home() {
   // ── Sesión ──
   const [pantalla,          setPantalla]          = useState<Pantalla>("login");
@@ -42,25 +36,15 @@ export default function Home() {
   const [metodoPago,    setMetodoPago]    = useState<MetodoPago>("efectivo");
   const [montoRecibido, setMontoRecibido] = useState<number | undefined>();
 
-  // ── Usuarios (demo, después Supabase) ──
-  const [usuarios,       setUsuarios]       = useState<Usuario[]>(USUARIOS_DEMO);
-  const [usuarioEditar,  setUsuarioEditar]  = useState<Usuario | undefined>();
+  // ── Usuarios ──
+  const [usuarioEditar, setUsuarioEditar] = useState<Usuario | undefined>();
 
   const totalCarrito = carrito.reduce((s, i) => s + i.cantidad * i.precio, 0);
 
-  // ── Login ──
-  const handleLogin = (nombreUsuario: string) => {
-    const encontrado = usuarios.find(
-      (u) => u.usuario === nombreUsuario && u.activo
-    );
-    if (encontrado) {
-      setUsuarioActual(encontrado);
-      if (encontrado.rol === "administrador") {
-        setPantalla("admin");
-      } else {
-        setPantalla("punto");
-      }
-    }
+  // ── Login desde Supabase ──
+  const handleLogin = (u: Usuario) => {
+    setUsuarioActual(u);
+    setPantalla(u.rol === "administrador" ? "admin" : "punto");
   };
 
   // ── Carrito helpers ──
@@ -79,26 +63,6 @@ export default function Home() {
     setProductoActual(null);
     setMontoRecibido(undefined);
     setPantalla("menu");
-  };
-
-  // ── Usuarios helpers ──
-  const guardarUsuario = (datos: Omit<Usuario, "id" | "activo">) => {
-    if (usuarioEditar) {
-      setUsuarios((prev) => prev.map((u) =>
-        u.id === usuarioEditar.id
-          ? { ...u, ...datos, password: datos.password || u.password }
-          : u
-      ));
-    } else {
-      const nuevo: Usuario = { ...datos, id: Date.now().toString(), activo: true };
-      setUsuarios((prev) => [...prev, nuevo]);
-    }
-    setUsuarioEditar(undefined);
-    setPantalla("admin_usuarios");
-  };
-
-  const toggleActivo = (u: Usuario) => {
-    setUsuarios((prev) => prev.map((x) => x.id === u.id ? { ...x, activo: !x.activo } : x));
   };
 
   return (
@@ -183,17 +147,15 @@ export default function Home() {
         )}
         {pantalla === "admin_usuarios" && (
           <UsuariosScreen
-            usuarios={usuarios}
             onNuevo={() => { setUsuarioEditar(undefined); setPantalla("admin_nuevo_usuario"); }}
             onEditar={(u) => { setUsuarioEditar(u); setPantalla("admin_editar_usuario"); }}
-            onToggleActivo={toggleActivo}
             onBack={() => setPantalla("admin")}
           />
         )}
         {(pantalla === "admin_nuevo_usuario" || pantalla === "admin_editar_usuario") && (
           <FormUsuarioScreen
             usuarioEditar={usuarioEditar}
-            onGuardar={guardarUsuario}
+            onGuardar={() => { setUsuarioEditar(undefined); setPantalla("admin_usuarios"); }}
             onBack={() => setPantalla("admin_usuarios")}
           />
         )}

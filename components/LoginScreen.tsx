@@ -1,18 +1,22 @@
 "use client";
 // ─────────────────────────────────────────────
-//  JUICE CO. — Pantalla 1: Login
+//  JUICE CO. — Pantalla 1: Login (con Supabase)
 // ─────────────────────────────────────────────
 import { useEffect, useRef, useState } from "react";
 import { colors, inputStyle, btnPrimary, cardStyle } from "./ui/styles";
+import { Usuario } from "./ui/types";
+import { supabase } from "@/supabase";
 
 interface Props {
-  onIngresar: (usuario: string) => void;
+  onIngresar: (usuario: Usuario) => void;
 }
 
 export default function LoginScreen({ onIngresar }: Props) {
-  const [usuario, setUsuario]               = useState("");
-  const [password, setPassword]             = useState("");
-  const [recordar, setRecordar]             = useState(false);
+  const [usuarioText, setUsuarioText] = useState("");
+  const [password,    setPassword]    = useState("");
+  const [recordar,    setRecordar]    = useState(false);
+  const [error,       setError]       = useState("");
+  const [cargando,    setCargando]    = useState(false);
 
   const usuarioRef  = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -20,7 +24,7 @@ export default function LoginScreen({ onIngresar }: Props) {
   useEffect(() => {
     const guardado = localStorage.getItem("juiceco_usuario");
     if (guardado) {
-      setUsuario(guardado);
+      setUsuarioText(guardado);
       setRecordar(true);
       setTimeout(() => passwordRef.current?.focus(), 100);
     } else {
@@ -28,19 +32,41 @@ export default function LoginScreen({ onIngresar }: Props) {
     }
   }, []);
 
-  const handleIngresar = () => {
-    if (!usuario.trim()) return;
+  const handleIngresar = async () => {
+    if (!usuarioText.trim() || !password.trim()) {
+      setError("Ingresa usuario y contraseña.");
+      return;
+    }
+
+    setCargando(true);
+    setError("");
+
+    const { data, error: err } = await supabase
+      .from("usuarios")
+      .select("*")
+      .eq("usuario", usuarioText.trim())
+      .eq("password", password.trim())
+      .eq("activo", true)
+      .single();
+
+    setCargando(false);
+
+    if (err || !data) {
+      setError("Usuario o contraseña incorrectos.");
+      return;
+    }
+
     if (recordar) {
-      localStorage.setItem("juiceco_usuario", usuario);
+      localStorage.setItem("juiceco_usuario", usuarioText);
     } else {
       localStorage.removeItem("juiceco_usuario");
     }
-    onIngresar(usuario);
+
+    onIngresar(data as Usuario);
   };
 
   return (
     <section>
-      {/* Logo */}
       <div style={{ textAlign: "center", marginBottom: 32, marginTop: 24 }}>
         <div style={{ fontSize: 52, marginBottom: 6 }}>🍋</div>
         <h1 style={{ color: colors.primaryDark, margin: 0, fontSize: 30, letterSpacing: 3 }}>
@@ -48,17 +74,14 @@ export default function LoginScreen({ onIngresar }: Props) {
         </h1>
       </div>
 
-      {/* Formulario */}
       <div style={cardStyle}>
-        <h2 style={{ marginTop: 0, marginBottom: 20, fontSize: 18, color: colors.textPrimary }}>
-          Iniciar sesión
-        </h2>
+        <h2 style={{ marginTop: 0, marginBottom: 20, fontSize: 18 }}>Iniciar sesión</h2>
 
         <input
           ref={usuarioRef}
           placeholder="👤  Usuario"
-          value={usuario}
-          onChange={(e) => setUsuario(e.target.value)}
+          value={usuarioText}
+          onChange={(e) => setUsuarioText(e.target.value)}
           style={inputStyle}
           autoCapitalize="none"
         />
@@ -82,8 +105,12 @@ export default function LoginScreen({ onIngresar }: Props) {
           <span style={{ fontSize: 14, color: colors.textSecondary }}>Recordarme</span>
         </label>
 
-        <button style={btnPrimary} onClick={handleIngresar}>
-          INGRESAR
+        {error && (
+          <p style={{ color: colors.danger, fontSize: 14, marginBottom: 12 }}>⚠️ {error}</p>
+        )}
+
+        <button style={{ ...btnPrimary, opacity: cargando ? 0.7 : 1 }} onClick={handleIngresar} disabled={cargando}>
+          {cargando ? "Verificando..." : "INGRESAR"}
         </button>
 
         <p style={{ textAlign: "center", fontSize: 12, color: colors.textMuted, marginTop: 16, marginBottom: 0 }}>
