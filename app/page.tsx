@@ -24,7 +24,8 @@ import BebidasScreen      from "@/components/BebidasScreen";
 import FormBebidaScreen   from "@/components/FormBebidaScreen";
 import UnidadesScreen     from "@/components/UnidadesScreen";
 import InsumosScreen      from "@/components/InsumosScreen";
-import FormInsumoScreen   from "@/components/FormInsumoScreen";
+import FormInsumoScreen              from "@/components/FormInsumoScreen";
+import EmailDestinatariosScreen from "@/components/EmailDestinatariosScreen";
 import DashboardScreen    from "@/components/DashboardScreen";
 
 export default function Home() {
@@ -210,6 +211,7 @@ export default function Home() {
             onSucursales={() => setPantalla("admin_sucursales")}
             onMaestros={() => setPantalla("admin_maestros")}
             onReportes={() => setPantalla("admin_dashboard")}
+            onEmailDestinatarios={() => setPantalla("admin_email_destinatarios")}
             onModoCajero={() => setPantalla("punto")}
             onCerrarSesion={() => { setUsuarioActual(null); setPantalla("login"); }}
           />
@@ -240,6 +242,9 @@ export default function Home() {
         )}
         {pantalla === "admin_insumos" && (
           <InsumosScreen onNuevo={() => { setInsumoEditar(undefined); setPantalla("admin_nuevo_insumo"); }} onEditar={(i) => { setInsumoEditar(i); setPantalla("admin_editar_insumo"); }} onBack={() => setPantalla("admin_maestros")} />
+        )}
+        {pantalla === "admin_email_destinatarios" && (
+          <EmailDestinatariosScreen onBack={() => setPantalla("admin")} />
         )}
         {pantalla === "admin_dashboard" && (
           <DashboardScreen onBack={() => setPantalla("admin")} />
