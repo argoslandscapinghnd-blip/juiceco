@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { colors } from "@/components/ui/styles";
 import {
-  Pantalla, ItemCarrito, DatosFactura, MetodoPago,
+  Pantalla, ItemCarrito, MetodoPago,
   PRECIO_UNITARIO, Usuario, Sucursal,
 } from "@/components/ui/types";
 
@@ -28,7 +28,10 @@ export default function Home() {
   // ── Sesión ──
   const [pantalla,          setPantalla]          = useState<Pantalla>("login");
   const [usuarioActual,     setUsuarioActual]     = useState<Usuario | null>(null);
-  const [puntoSeleccionado, setPuntoSeleccionado] = useState("");
+  const [sucursalId,        setSucursalId]        = useState<number>(0);
+  const [puntoNombre,       setPuntoNombre]       = useState("");
+  const [sesionCajaId,      setSesionCajaId]      = useState<number>(0);
+  const [fondoInicial,      setFondoInicial]      = useState<number>(0);
 
   // ── Carrito ──
   const [carrito,        setCarrito]        = useState<ItemCarrito[]>([]);
@@ -77,15 +80,25 @@ export default function Home() {
         {/* ── CAJERO ── */}
         {pantalla === "punto" && (
           <PuntoVentaScreen
-            onSeleccionar={(p) => { setPuntoSeleccionado(p); setPantalla("caja"); }}
+            onSeleccionar={(id, nombre) => {
+              setSucursalId(id);
+              setPuntoNombre(nombre);
+              setPantalla("caja");
+            }}
             onBack={() => setPantalla("login")}
           />
         )}
         {pantalla === "caja" && (
           <AperturaCajaScreen
-            punto={puntoSeleccionado}
+            sucursalId={sucursalId}
+            punto={puntoNombre}
             usuario={usuarioActual?.nombre ?? ""}
-            onAbrir={() => setPantalla("menu")}
+            usuarioId={usuarioActual?.id ?? ""}
+            onAbrir={(sesionId, fondo) => {
+              setSesionCajaId(sesionId);
+              setFondoInicial(fondo);
+              setPantalla("menu");
+            }}
             onBack={() => setPantalla("punto")}
           />
         )}
@@ -121,7 +134,11 @@ export default function Home() {
         {pantalla === "pago" && (
           <PagoScreen
             total={totalCarrito}
-            onConfirmar={(metodo, monto) => { setMetodoPago(metodo); setMontoRecibido(monto); setPantalla("confirmacion"); }}
+            onConfirmar={(metodo, monto) => {
+              setMetodoPago(metodo);
+              setMontoRecibido(monto);
+              setPantalla("confirmacion");
+            }}
             onBack={() => setPantalla("factura")}
           />
         )}
