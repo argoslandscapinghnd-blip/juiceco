@@ -9,12 +9,12 @@ import { Producto } from "./ui/types";
 import { supabase } from "@/supabase";
 
 interface Props {
-  onNueva: () => void;
+  onNuevo: () => void;
   onEditar: (b: Producto) => void;
   onBack: () => void;
 }
 
-export default function BebidasScreen({ onNueva, onEditar, onBack }: Props) {
+export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
   const [bebidas, setBebidas] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(true);
   const [verInhabilitadas, setVerInhabilitadas] = useState(false);
@@ -38,19 +38,19 @@ export default function BebidasScreen({ onNueva, onEditar, onBack }: Props) {
   };
 
   const toggleActivo = async (b: Producto) => {
-    await supabase
+    const { error } = await supabase
       .from("productos")
       .update({ activo: !b.activo })
       .eq("id", b.id);
 
-    cargar();
+    if (!error) cargar();
   };
 
   return (
     <section>
       <Header titulo="Bebidas" onBack={onBack} />
 
-      {/* BOTONES */}
+      {/* Toggle */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <button
           onClick={() => setVerInhabilitadas(false)}
@@ -85,24 +85,28 @@ export default function BebidasScreen({ onNueva, onEditar, onBack }: Props) {
         </button>
       </div>
 
-      {/* NUEVA */}
+      {/* Nueva bebida */}
       {!verInhabilitadas && (
-        <button style={{ ...btnPrimary, marginBottom: 14 }} onClick={onNueva}>
+        <button style={{ ...btnPrimary, marginBottom: 14 }} onClick={onNuevo}>
           + NUEVA BEBIDA
         </button>
       )}
 
-      {/* LISTA */}
+      {/* Lista */}
       {cargando ? (
         <p style={{ textAlign: "center" }}>Cargando...</p>
       ) : bebidas.length === 0 ? (
         <p style={{ textAlign: "center", color: colors.textMuted }}>
-          {verInhabilitadas ? "No hay bebidas inhabilitadas." : "No hay bebidas activas."}
+          {verInhabilitadas
+            ? "No hay bebidas inhabilitadas."
+            : "No hay bebidas activas."}
         </p>
       ) : (
         bebidas.map((b) => (
           <div key={b.id} style={{ ...cardStyle, marginBottom: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              
+              {/* Imagen */}
               <img
                 src={b.imagen_url || ""}
                 alt=""
@@ -115,8 +119,12 @@ export default function BebidasScreen({ onNueva, onEditar, onBack }: Props) {
                 }}
               />
 
+              {/* Info */}
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: "bold", fontSize: 15 }}>{b.nombre}</div>
+                <div style={{ fontWeight: "bold", fontSize: 15 }}>
+                  {b.nombre}
+                </div>
+
                 <div style={{ color: colors.primary, fontWeight: "bold" }}>
                   L {Number(b.precio).toFixed(2)}
                 </div>
@@ -134,12 +142,10 @@ export default function BebidasScreen({ onNueva, onEditar, onBack }: Props) {
                 </span>
               </div>
 
+              {/* Acciones */}
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {!verInhabilitadas && (
-                  <button
-                    onClick={() => onEditar(b)}
-                    style={btnEditar}
-                  >
+                  <button onClick={() => onEditar(b)} style={btnEditar}>
                     ✏️ Editar
                   </button>
                 )}
@@ -158,6 +164,8 @@ export default function BebidasScreen({ onNueva, onEditar, onBack }: Props) {
     </section>
   );
 }
+
+// ─────────── estilos ───────────
 
 const btnEditar: React.CSSProperties = {
   padding: "6px 10px",
