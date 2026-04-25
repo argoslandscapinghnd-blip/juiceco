@@ -18,6 +18,7 @@ import CarritoScreen      from "@/components/CarritoScreen";
 import FacturaScreen      from "@/components/FacturaScreen";
 import PagoScreen         from "@/components/PagoScreen";
 import ConfirmacionScreen from "@/components/ConfirmacionScreen";
+import MiTurnoScreen      from "@/components/MiTurnoScreen";
 import AdminMenuScreen    from "@/components/AdminMenuScreen";
 import UsuariosScreen     from "@/components/UsuariosScreen";
 import FormUsuarioScreen  from "@/components/FormUsuarioScreen";
@@ -31,6 +32,7 @@ export default function Home() {
   const [sucursalId,        setSucursalId]        = useState<number>(0);
   const [puntoNombre,       setPuntoNombre]       = useState("");
   const [sesionCajaId,      setSesionCajaId]      = useState<number>(0);
+  const [fondoInicial,      setFondoInicial]      = useState<number>(0);
 
   // ── Carrito ──
   const [carrito,        setCarrito]        = useState<ItemCarrito[]>([]);
@@ -48,12 +50,13 @@ export default function Home() {
 
   const totalCarrito = carrito.reduce((s, i) => s + i.cantidad * i.precio, 0);
 
-  const handleLogin = (u: Usuario, sesionActiva?: { id: number; sucursal_id: number; sucursal: { nombre: string; codigo: string } }) => {
+  const handleLogin = (u: Usuario, sesionActiva?: { id: number; sucursal_id: number; fondo_inicial: number; sucursal: { nombre: string; codigo: string } }) => {
     setUsuarioActual(u);
     if (u.rol === "administrador") { setPantalla("admin"); return; }
     if (sesionActiva) {
       setSesionCajaId(sesionActiva.id);
       setSucursalId(sesionActiva.sucursal_id);
+      setFondoInicial(sesionActiva.fondo_inicial ?? 0);
       setPuntoNombre(`${sesionActiva.sucursal.codigo} - ${sesionActiva.sucursal.nombre}`);
       setPantalla("menu");
       return;
@@ -61,7 +64,6 @@ export default function Home() {
     setPantalla("punto");
   };
 
-  // ── Cerrar sesión del cajero (NO cierra la sesión de caja) ──
   const cerrarSesionCajero = () => {
     setCarrito([]);
     setProductoActual(null);
@@ -113,7 +115,7 @@ export default function Home() {
             punto={puntoNombre}
             usuario={usuarioActual?.nombre ?? ""}
             usuarioId={usuarioActual?.id ?? ""}
-            onAbrir={(sesionId) => { setSesionCajaId(sesionId); setPantalla("menu"); }}
+            onAbrir={(sesionId, fondo) => { setSesionCajaId(sesionId); setFondoInicial(fondo); setPantalla("menu"); }}
             onBack={() => setPantalla("punto")}
           />
         )}
@@ -124,6 +126,7 @@ export default function Home() {
             sucursal={puntoNombre}
             onSeleccionarSabor={(nombre) => { setProductoActual(nombre); setPantalla("cantidad"); }}
             onVerCarrito={() => setPantalla("carrito")}
+            onVerTurno={() => setPantalla("mi_turno")}
             onCerrarSesion={cerrarSesionCajero}
           />
         )}
@@ -143,6 +146,7 @@ export default function Home() {
             onVaciarCarrito={() => setCarrito([])}
             onFinalizarVenta={() => setPantalla("factura")}
             onBack={() => setPantalla("menu")}
+            onVerTurno={() => setPantalla("mi_turno")}
             onCerrarSesion={cerrarSesionCajero}
           />
         )}
@@ -172,6 +176,16 @@ export default function Home() {
             datosFactura={datosFactura}
             onNuevaVenta={nuevaVenta}
             onImprimir={() => alert("🖨️ Enviando a impresora...")}
+          />
+        )}
+        {pantalla === "mi_turno" && (
+          <MiTurnoScreen
+            sesionCajaId={sesionCajaId}
+            sucursalId={sucursalId}
+            fondoInicial={fondoInicial}
+            usuario={usuarioActual?.nombre ?? ""}
+            onBack={() => setPantalla("menu")}
+            onCerrarCaja={() => alert("Cierre de caja — próximamente")}
           />
         )}
 

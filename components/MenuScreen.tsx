@@ -13,12 +13,13 @@ interface Props {
   sucursal:           string;
   onSeleccionarSabor: (nombre: string) => void;
   onVerCarrito:       () => void;
+  onVerTurno:         () => void;
   onCerrarSesion:     () => void;
 }
 
 export default function MenuScreen({
   carrito, usuario, sucursal,
-  onSeleccionarSabor, onVerCarrito, onCerrarSesion,
+  onSeleccionarSabor, onVerCarrito, onVerTurno, onCerrarSesion,
 }: Props) {
   const unidades = carrito.reduce((s, i) => s + i.cantidad, 0);
   const total    = carrito.reduce((s, i) => s + i.cantidad * i.precio, 0);
@@ -29,10 +30,10 @@ export default function MenuScreen({
         usuario={usuario}
         sucursal={sucursal}
         tieneItems={carrito.length > 0}
+        onVerTurno={onVerTurno}
         onCerrarSesion={onCerrarSesion}
       />
 
-      {/* Topbar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <Logo size="normal" />
         {unidades > 0 && (
@@ -42,19 +43,15 @@ export default function MenuScreen({
         )}
       </div>
 
-      {/* Grid de sabores */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         {SABORES.map((s) => (
           <button key={s.nombre} style={productCardStyle} onClick={() => onSeleccionarSabor(s.nombre)}>
             <span style={{ fontSize: 34 }}>{s.emoji}</span>
-            <span style={{ fontSize: 13, fontWeight: "bold", textAlign: "center", color: colors.textPrimary }}>
-              {s.nombre}
-            </span>
+            <span style={{ fontSize: 13, fontWeight: "bold", textAlign: "center", color: colors.textPrimary }}>{s.nombre}</span>
           </button>
         ))}
       </div>
 
-      {/* Otros productos y agua */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
         {[{ emoji: "📦", label: "OTROS PRODUCTOS" }, { emoji: "💧", label: "AGUA" }].map((item) => (
           <button key={item.label} style={{ ...productCardStyle, opacity: 0.65 }}>
@@ -64,7 +61,6 @@ export default function MenuScreen({
         ))}
       </div>
 
-      {/* Botón carrito */}
       {unidades > 0 && (
         <button style={btnAccent} onClick={onVerCarrito}>
           <span>🛒 VER CARRITO ({unidades})</span>

@@ -12,6 +12,7 @@ export type Pantalla =
   | "factura"
   | "pago"
   | "confirmacion"
+  | "mi_turno"
   | "admin"
   | "admin_usuarios"
   | "admin_nuevo_usuario"

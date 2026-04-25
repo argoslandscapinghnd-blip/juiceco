@@ -15,13 +15,14 @@ interface Props {
   onVaciarCarrito:  () => void;
   onFinalizarVenta: () => void;
   onBack:           () => void;
+  onVerTurno:       () => void;
   onCerrarSesion:   () => void;
 }
 
 export default function CarritoScreen({
   carrito, usuario, sucursal,
   onEliminarItem, onVaciarCarrito,
-  onFinalizarVenta, onBack, onCerrarSesion,
+  onFinalizarVenta, onBack, onVerTurno, onCerrarSesion,
 }: Props) {
   const total = carrito.reduce((s, i) => s + i.cantidad * i.precio, 0);
 
@@ -31,6 +32,7 @@ export default function CarritoScreen({
         usuario={usuario}
         sucursal={sucursal}
         tieneItems={carrito.length > 0}
+        onVerTurno={onVerTurno}
         onCerrarSesion={onCerrarSesion}
       />
 
@@ -39,9 +41,7 @@ export default function CarritoScreen({
           <Header titulo="Venta actual" onBack={onBack} />
         </div>
         {carrito.length > 0 && (
-          <button onClick={onVaciarCarrito} style={{ background: "none", border: "none", color: colors.danger, cursor: "pointer", fontSize: 22 }}>
-            🗑️
-          </button>
+          <button onClick={onVaciarCarrito} style={{ background: "none", border: "none", color: colors.danger, cursor: "pointer", fontSize: 22 }}>🗑️</button>
         )}
       </div>
 
