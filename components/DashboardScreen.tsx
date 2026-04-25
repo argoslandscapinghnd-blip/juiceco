@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../../supabase";
+import { supabase } from "@/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface KPI {
