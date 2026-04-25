@@ -160,7 +160,7 @@ export default function Home() {
           />
         )}
         {pantalla === "cantidad" && productoActual && (
-          <CantidadScreen producto={productoActual} onAgregar={agregarAlCarrito} onBack={() => setPantalla("menu")} />
+          <CantidadScreen producto={productoActual} precio={precioActual} onAgregar={agregarAlCarrito} onBack={() => setPantalla("menu")} />
         )}
         {pantalla === "carrito" && (
           <CarritoScreen carrito={carrito} usuario={usuarioActual?.nombre ?? ""} sucursal={puntoNombre}
