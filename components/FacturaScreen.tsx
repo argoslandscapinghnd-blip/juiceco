@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────
 //  JUICE CO. — Pantalla 7: Tipo de Factura
 // ─────────────────────────────────────────────
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Header } from "./ui/components";
 import { colors, btnPrimary, cardStyle, inputStyle } from "./ui/styles";
 import { DatosFactura } from "./ui/types";
@@ -24,12 +24,21 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
   const [rtn, setRtn] = useState("");
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
+  const [busqueda, setBusqueda] = useState("");
   const [clientes, setClientes] = useState<ClienteRTN[]>([]);
   const [error, setError] = useState("");
+
+  const rtnRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     cargarRTNs();
   }, []);
+
+  useEffect(() => {
+    if (paso === "datos") {
+      setTimeout(() => rtnRef.current?.focus(), 100);
+    }
+  }, [paso]);
 
   const cargarRTNs = async () => {
     const { data } = await supabase
@@ -66,7 +75,9 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
     setRtn(cliente.rtn);
     setNombre(cliente.nombre ?? "");
     setCorreo(cliente.correo ?? "");
+    setBusqueda("");
     setError("");
+    setTimeout(() => rtnRef.current?.focus(), 50);
   };
 
   const handleContinuarConDatos = () => {
@@ -95,16 +106,19 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
     });
   };
 
+  const textoBusqueda = busqueda.trim().toLowerCase();
+
   const clientesFiltrados =
-    rtn.length > 0
+    textoBusqueda.length > 0
       ? clientes
-          .filter(
-            (c) =>
-              c.rtn.includes(rtn) ||
-              c.nombre.toLowerCase().includes(nombre.toLowerCase())
-          )
-          .slice(0, 5)
-      : clientes.slice(0, 5);
+          .filter((c) => {
+            const rtnCliente = c.rtn.toLowerCase();
+            const nombreCliente = c.nombre.toLowerCase();
+
+            return rtnCliente.includes(textoBusqueda) || nombreCliente.includes(textoBusqueda);
+          })
+          .slice(0, 6)
+      : [];
 
   if (paso === "elegir") {
     return (
@@ -152,9 +166,10 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
       <Header titulo="Factura formal" onBack={() => setPaso("elegir")} />
 
       <div style={cardStyle}>
-        <label style={labelStyle}>Buscar RTN de cliente anterior</label>
+        <label style={labelStyle}>RTN</label>
         <input
-          placeholder="Buscar por RTN o nombre"
+          ref={rtnRef}
+          placeholder="08011987012345"
           value={rtn}
           onChange={(e) => {
             setRtn(limpiarRTN(e.target.value));
@@ -162,6 +177,14 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
           }}
           style={inputStyle}
           inputMode="numeric"
+        />
+
+        <label style={labelStyle}>Buscar cliente anterior</label>
+        <input
+          placeholder="Buscar por RTN o nombre"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          style={inputStyle}
         />
 
         {clientesFiltrados.length > 0 && (
@@ -180,17 +203,11 @@ export default function FacturaScreen({ onContinuar, onBack }: Props) {
           </div>
         )}
 
-        <label style={labelStyle}>RTN</label>
-        <input
-          placeholder="08011987012345"
-          value={rtn}
-          onChange={(e) => {
-            setRtn(limpiarRTN(e.target.value));
-            setError("");
-          }}
-          style={inputStyle}
-          inputMode="numeric"
-        />
+        {textoBusqueda.length > 0 && clientesFiltrados.length === 0 && (
+          <p style={{ fontSize: 12, color: colors.textMuted, marginTop: -8, marginBottom: 14 }}>
+            No se encontraron clientes con ese RTN o nombre.
+          </p>
+        )}
 
         <label style={labelStyle}>Nombre / Razón Social</label>
         <input
