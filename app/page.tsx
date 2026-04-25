@@ -54,9 +54,20 @@ export default function Home() {
     u: Usuario,
     sesionActiva?: { id: number; sucursal_id: number; fondo_inicial: number; sucursal: { nombre: string; codigo: string } }
   ) => {
+    // ── Limpiar SIEMPRE al hacer login para no heredar datos de otro usuario ──
+    setSucursalId(0);
+    setPuntoNombre("");
+    setSesionCajaId(0);
+    setFondoInicial(0);
+    setCarrito([]);
+    setProductoActual(null);
+    setMontoRecibido(undefined);
+    setConFactura(false);
+    setDatosFactura(undefined);
+
     setUsuarioActual(u);
 
-    // Si tiene sesión activa de caja, cargar esos datos siempre (aplica a cajero y admin)
+    // Si tiene sesión activa de caja, cargar sus datos
     if (sesionActiva) {
       setSesionCajaId(sesionActiva.id);
       setSucursalId(sesionActiva.sucursal_id);
@@ -64,7 +75,7 @@ export default function Home() {
       setPuntoNombre(`${sesionActiva.sucursal.codigo} - ${sesionActiva.sucursal.nombre}`);
     }
 
-    // Admin → siempre va a su panel, pero con datos de caja ya cargados
+    // Admin → siempre va a su panel
     if (u.rol === "administrador") {
       setPantalla("admin");
       return;
