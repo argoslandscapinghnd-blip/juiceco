@@ -1,7 +1,6 @@
 "use client";
 // ─────────────────────────────────────────────
 //  JUICE CO. — Pantalla 3: Apertura de Caja
-//  Guarda la sesión activa en Supabase
 // ─────────────────────────────────────────────
 import { useState } from "react";
 import { Header, Row } from "./ui/components";
@@ -17,12 +16,14 @@ interface Props {
   onBack:     () => void;
 }
 
+const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
+
 export default function AperturaCajaScreen({
   sucursalId, punto, usuario, usuarioId, onAbrir, onBack,
 }: Props) {
-  const [fondo,    setFondo]    = useState("");
-  const [error,    setError]    = useState("");
-  const [cargando, setCargando] = useState(false);
+  const [fondoTexto, setFondoTexto] = useState("");
+  const [error,      setError]      = useState("");
+  const [cargando,   setCargando]   = useState(false);
 
   const fecha = new Date().toLocaleDateString("es-HN", {
     day: "2-digit", month: "2-digit", year: "numeric",
@@ -30,24 +31,31 @@ export default function AperturaCajaScreen({
     hour: "2-digit", minute: "2-digit",
   });
 
+  // Solo permite dígitos y un punto decimal
+  const handleCambio = (val: string) => {
+    const limpio = val.replace(/[^0-9.]/g, "");
+    const partes = limpio.split(".");
+    if (partes.length > 2) return; // no más de un punto
+    setFondoTexto(limpio);
+  };
+
+  const valorNumerico = parseFloat(fondoTexto) || 0;
+
   const handleAbrir = async () => {
-    const valor = parseFloat(fondo);
-    if (!fondo.trim() || isNaN(valor) || valor < 0) {
+    if (!fondoTexto.trim() || isNaN(valorNumerico) || valorNumerico < 0) {
       setError("Ingresa un fondo inicial válido.");
       return;
     }
-
     setCargando(true);
     setError("");
 
-    // Crear sesión activa en Supabase
     const { data, error: err } = await supabase
       .from("sesiones_caja")
       .insert({
         sucursal_id:    sucursalId,
         usuario_id:     usuarioId,
         usuario_nombre: usuario,
-        fondo_inicial:  valor,
+        fondo_inicial:  valorNumerico,
         activa:         true,
       })
       .select()
@@ -55,12 +63,8 @@ export default function AperturaCajaScreen({
 
     setCargando(false);
 
-    if (err) {
-      setError("Error al abrir caja: " + err.message);
-      return;
-    }
-
-    onAbrir(data.id, valor);
+    if (err) { setError("Error al abrir caja: " + err.message); return; }
+    onAbrir(data.id, valorNumerico);
   };
 
   return (
@@ -75,14 +79,21 @@ export default function AperturaCajaScreen({
         <label style={{ display: "block", marginTop: 16, marginBottom: 6, fontWeight: "bold", fontSize: 14, color: colors.textPrimary }}>
           Fondo inicial de caja (L.)
         </label>
+
         <input
           placeholder="0.00"
-          value={fondo}
-          onChange={(e) => setFondo(e.target.value)}
-          type="number"
-          min="0"
+          value={fondoTexto}
+          onChange={(e) => handleCambio(e.target.value)}
+          inputMode="decimal"
           style={{ ...inputStyle, fontSize: 28, fontWeight: "bold", textAlign: "center" }}
         />
+
+        {/* Preview con separador de miles */}
+        {valorNumerico > 0 && (
+          <div style={{ textAlign: "center", fontSize: 16, color: colors.primary, fontWeight: "bold", marginTop: 4, marginBottom: 8 }}>
+            L {fmt(valorNumerico)}
+          </div>
+        )}
 
         {error && (
           <p style={{ color: colors.danger, fontSize: 14, marginBottom: 12 }}>⚠️ {error}</p>
