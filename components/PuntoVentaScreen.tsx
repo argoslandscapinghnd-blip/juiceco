@@ -105,7 +105,6 @@ export default function PuntoVentaScreen({ onSeleccionar, onBack }: Props) {
                 pointerEvents: "none",
               }}>
                 <span style={{
-                  fontSize: 11,
                   fontWeight: "bold",
                   color: colors.danger,
                   opacity: 0.15,
