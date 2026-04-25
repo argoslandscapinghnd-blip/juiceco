@@ -7,8 +7,14 @@ import { colors, inputStyle, btnPrimary, cardStyle } from "./ui/styles";
 import { Usuario } from "./ui/types";
 import { supabase } from "@/supabase";
 
+interface SesionActiva {
+  id:          number;
+  sucursal_id: number;
+  sucursal:    { nombre: string; codigo: string };
+}
+
 interface Props {
-  onIngresar: (usuario: Usuario) => void;
+  onIngresar: (usuario: Usuario, sesionActiva?: SesionActiva) => void;
 }
 
 export default function LoginScreen({ onIngresar }: Props) {
@@ -23,16 +29,14 @@ export default function LoginScreen({ onIngresar }: Props) {
   const passwordRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Siempre mostrar el último usuario que ingresó exitosamente
     const guardado = localStorage.getItem("juiceco_ultimo_usuario");
     if (guardado) {
       setUsuarioText(guardado);
+      setRecordar(true);
       setTimeout(() => passwordRef.current?.focus(), 100);
     } else {
       setTimeout(() => usuarioRef.current?.focus(), 100);
     }
-
-    // Restaurar preferencia de recordar
     const recuerdaPreferencia = localStorage.getItem("juiceco_recordar");
     if (recuerdaPreferencia === "true") setRecordar(true);
   }, []);
@@ -46,7 +50,8 @@ export default function LoginScreen({ onIngresar }: Props) {
     setCargando(true);
     setError("");
 
-    const { data, error: err } = await supabase
+    // 1. Validar credenciales
+    const { data: userData, error: errUser } = await supabase
       .from("usuarios")
       .select("*")
       .eq("usuario", usuarioText.trim())
@@ -54,24 +59,38 @@ export default function LoginScreen({ onIngresar }: Props) {
       .eq("activo", true)
       .single();
 
-    setCargando(false);
-
-    if (err || !data) {
+    if (errUser || !userData) {
+      setCargando(false);
       setError("Usuario o contraseña incorrectos.");
-      // Limpiar password y dar foco para reintentar
       setPassword("");
       setVerPass(false);
       setTimeout(() => passwordRef.current?.focus(), 100);
       return;
     }
 
-    // Guardar siempre el último usuario que ingresó exitosamente
-    localStorage.setItem("juiceco_ultimo_usuario", usuarioText.trim());
+    // 2. Verificar si tiene sesión activa
+    const { data: sesionData } = await supabase
+      .from("sesiones_caja")
+      .select("id, sucursal_id, sucursales(nombre, codigo)")
+      .eq("usuario_id", userData.id)
+      .eq("activa", true)
+      .single();
 
-    // Guardar preferencia de recordar
+    setCargando(false);
+
+    localStorage.setItem("juiceco_ultimo_usuario", usuarioText.trim());
     localStorage.setItem("juiceco_recordar", recordar ? "true" : "false");
 
-    onIngresar(data as Usuario);
+    if (sesionData) {
+      const sesion: SesionActiva = {
+        id:          sesionData.id,
+        sucursal_id: sesionData.sucursal_id,
+        sucursal:    (sesionData as any).sucursales,
+      };
+      onIngresar(userData as Usuario, sesion);
+    } else {
+      onIngresar(userData as Usuario);
+    }
   };
 
   return (
@@ -95,7 +114,6 @@ export default function LoginScreen({ onIngresar }: Props) {
           autoCapitalize="none"
         />
 
-        {/* Contraseña con ojito */}
         <div style={{ position: "relative", marginBottom: 12 }}>
           <input
             ref={passwordRef}
@@ -109,16 +127,9 @@ export default function LoginScreen({ onIngresar }: Props) {
           <button
             onClick={() => setVerPass(!verPass)}
             style={{
-              position: "absolute",
-              right: 12,
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 20,
-              padding: 0,
-              lineHeight: 1,
+              position: "absolute", right: 12, top: "50%",
+              transform: "translateY(-50%)", background: "none",
+              border: "none", cursor: "pointer", fontSize: 20, padding: 0, lineHeight: 1,
             }}
           >
             {verPass ? "🙈" : "👁️"}

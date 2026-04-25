@@ -48,9 +48,25 @@ export default function Home() {
 
   const totalCarrito = carrito.reduce((s, i) => s + i.cantidad * i.precio, 0);
 
-  const handleLogin = (u: Usuario) => {
+  const handleLogin = (u: Usuario, sesionActiva?: { id: number; sucursal_id: number; sucursal: { nombre: string; codigo: string } }) => {
     setUsuarioActual(u);
-    setPantalla(u.rol === "administrador" ? "admin" : "punto");
+
+    if (u.rol === "administrador") {
+      setPantalla("admin");
+      return;
+    }
+
+    // Si cajero tiene sesión activa → saltar directo al menú
+    if (sesionActiva) {
+      setSesionCajaId(sesionActiva.id);
+      setSucursalId(sesionActiva.sucursal_id);
+      setPuntoNombre(`${sesionActiva.sucursal.codigo} - ${sesionActiva.sucursal.nombre}`);
+      setPantalla("menu");
+      return;
+    }
+
+    // Sin sesión activa → seleccionar sucursal
+    setPantalla("punto");
   };
 
   const agregarAlCarrito = (cantidad: number) => {
@@ -98,7 +114,7 @@ export default function Home() {
             punto={puntoNombre}
             usuario={usuarioActual?.nombre ?? ""}
             usuarioId={usuarioActual?.id ?? ""}
-            onAbrir={(sesionId, fondo) => {
+            onAbrir={(sesionId) => {
               setSesionCajaId(sesionId);
               setPantalla("menu");
             }}
