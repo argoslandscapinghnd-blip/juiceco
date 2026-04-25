@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { colors } from "@/components/ui/styles";
 import {
-  Pantalla, ItemCarrito, MetodoPago,
+  Pantalla, ItemCarrito, DatosFactura, MetodoPago,
   PRECIO_UNITARIO, Usuario, Sucursal,
 } from "@/components/ui/types";
 
@@ -31,7 +31,6 @@ export default function Home() {
   const [sucursalId,        setSucursalId]        = useState<number>(0);
   const [puntoNombre,       setPuntoNombre]       = useState("");
   const [sesionCajaId,      setSesionCajaId]      = useState<number>(0);
-  const [fondoInicial,      setFondoInicial]      = useState<number>(0);
 
   // ── Carrito ──
   const [carrito,        setCarrito]        = useState<ItemCarrito[]>([]);
@@ -40,6 +39,8 @@ export default function Home() {
   // ── Venta ──
   const [metodoPago,    setMetodoPago]    = useState<MetodoPago>("efectivo");
   const [montoRecibido, setMontoRecibido] = useState<number | undefined>();
+  const [conFactura,    setConFactura]    = useState(false);
+  const [datosFactura,  setDatosFactura]  = useState<DatosFactura | undefined>();
 
   // ── Admin ──
   const [usuarioEditar,  setUsuarioEditar]  = useState<Usuario | undefined>();
@@ -66,6 +67,8 @@ export default function Home() {
     setCarrito([]);
     setProductoActual(null);
     setMontoRecibido(undefined);
+    setConFactura(false);
+    setDatosFactura(undefined);
     setPantalla("menu");
   };
 
@@ -86,7 +89,7 @@ export default function Home() {
               setPuntoNombre(nombre);
               setPantalla("caja");
             }}
-            onBack={() => setPantalla("login")}
+            onBack={() => setPantalla(usuarioActual?.rol === "administrador" ? "admin" : "login")}
           />
         )}
         {pantalla === "caja" && (
@@ -97,7 +100,6 @@ export default function Home() {
             usuarioId={usuarioActual?.id ?? ""}
             onAbrir={(sesionId, fondo) => {
               setSesionCajaId(sesionId);
-              setFondoInicial(fondo);
               setPantalla("menu");
             }}
             onBack={() => setPantalla("punto")}
@@ -128,7 +130,11 @@ export default function Home() {
         )}
         {pantalla === "factura" && (
           <FacturaScreen
-            onContinuar={() => setPantalla("pago")}
+            onContinuar={(cf, datos) => {
+              setConFactura(cf);
+              setDatosFactura(datos);
+              setPantalla("pago");
+            }}
             onBack={() => setPantalla("carrito")}
           />
         )}
@@ -148,6 +154,12 @@ export default function Home() {
             total={totalCarrito}
             metodo={metodoPago}
             montoRecibido={montoRecibido}
+            carrito={carrito}
+            sesionCajaId={sesionCajaId}
+            sucursalId={sucursalId}
+            usuarioId={usuarioActual?.id ?? ""}
+            conFactura={conFactura}
+            datosFactura={datosFactura}
             onNuevaVenta={nuevaVenta}
             onImprimir={() => alert("🖨️ Enviando a impresora...")}
           />
