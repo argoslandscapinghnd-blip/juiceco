@@ -23,14 +23,18 @@ export default function LoginScreen({ onIngresar }: Props) {
   const passwordRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const guardado = localStorage.getItem("juiceco_usuario");
+    // Siempre mostrar el último usuario que ingresó exitosamente
+    const guardado = localStorage.getItem("juiceco_ultimo_usuario");
     if (guardado) {
       setUsuarioText(guardado);
-      setRecordar(true);
       setTimeout(() => passwordRef.current?.focus(), 100);
     } else {
       setTimeout(() => usuarioRef.current?.focus(), 100);
     }
+
+    // Restaurar preferencia de recordar
+    const recuerdaPreferencia = localStorage.getItem("juiceco_recordar");
+    if (recuerdaPreferencia === "true") setRecordar(true);
   }, []);
 
   const handleIngresar = async () => {
@@ -54,14 +58,18 @@ export default function LoginScreen({ onIngresar }: Props) {
 
     if (err || !data) {
       setError("Usuario o contraseña incorrectos.");
+      // Limpiar password y dar foco para reintentar
+      setPassword("");
+      setVerPass(false);
+      setTimeout(() => passwordRef.current?.focus(), 100);
       return;
     }
 
-    if (recordar) {
-      localStorage.setItem("juiceco_usuario", usuarioText);
-    } else {
-      localStorage.removeItem("juiceco_usuario");
-    }
+    // Guardar siempre el último usuario que ingresó exitosamente
+    localStorage.setItem("juiceco_ultimo_usuario", usuarioText.trim());
+
+    // Guardar preferencia de recordar
+    localStorage.setItem("juiceco_recordar", recordar ? "true" : "false");
 
     onIngresar(data as Usuario);
   };
