@@ -4,7 +4,8 @@ export type Pantalla =
   | "admin" | "admin_usuarios" | "admin_nuevo_usuario" | "admin_editar_usuario"
   | "admin_sucursales" | "admin_nueva_sucursal" | "admin_editar_sucursal"
   | "admin_bebidas" | "admin_nueva_bebida" | "admin_editar_bebida"
-  | "admin_insumos" | "admin_nuevo_insumo" | "admin_editar_insumo";
+  | "admin_insumos" | "admin_nuevo_insumo" | "admin_editar_insumo"
+  | "admin_recetas";
 
 export type ItemCarrito = { nombre: string; cantidad: number; precio: number; };
 export type DatosFactura = { rtn: string; nombre: string; correo: string; };

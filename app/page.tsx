@@ -21,6 +21,7 @@ import FormSucursalScreen from "@/components/FormSucursalScreen";
 import BebidasScreen      from "@/components/BebidasScreen";
 import FormBebidaScreen   from "@/components/FormBebidaScreen";
 import InsumosScreen      from "@/components/InsumosScreen";
+import RecetasScreen      from "@/components/RecetasScreen";
 import FormInsumoScreen   from "@/components/FormInsumoScreen";
 
 export default function Home() {
@@ -149,6 +150,7 @@ export default function Home() {
             onSucursales={() => setPantalla("admin_sucursales")}
             onBebidas={() => setPantalla("admin_bebidas")}
             onInsumos={() => setPantalla("admin_insumos")}
+            onRecetas={() => setPantalla("admin_recetas")}
             onReportes={() => alert("Próximamente")}
             onModoCajero={() => setPantalla("punto")}
             onCerrarSesion={() => { setUsuarioActual(null); setPantalla("login"); }}
@@ -172,6 +174,7 @@ export default function Home() {
         {(pantalla === "admin_nueva_bebida" || pantalla === "admin_editar_bebida") && (
           <FormBebidaScreen bebidaEditar={bebidaEditar} onGuardar={() => { setBebidaEditar(undefined); setPantalla("admin_bebidas"); }} onBack={() => setPantalla("admin_bebidas")} />
         )}
+        {pantalla === "admin_recetas" && <RecetasScreen onBack={() => setPantalla("admin")} /> }
         {pantalla === "admin_insumos" && (
           <InsumosScreen onNuevo={() => { setInsumoEditar(undefined); setPantalla("admin_nuevo_insumo"); }} onEditar={(i) => { setInsumoEditar(i); setPantalla("admin_editar_insumo"); }} onBack={() => setPantalla("admin")} />
         )}
