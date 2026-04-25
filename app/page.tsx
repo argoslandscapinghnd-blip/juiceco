@@ -80,6 +80,7 @@ export default function Home() {
         {/* ── CAJERO ── */}
         {pantalla === "punto" && (
           <PuntoVentaScreen
+            esAdmin={usuarioActual?.rol === "administrador"}
             onSeleccionar={(id, nombre) => {
               setSucursalId(id);
               setPuntoNombre(nombre);
