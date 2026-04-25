@@ -50,13 +50,7 @@ export default function Home() {
 
   const handleLogin = (u: Usuario, sesionActiva?: { id: number; sucursal_id: number; sucursal: { nombre: string; codigo: string } }) => {
     setUsuarioActual(u);
-
-    if (u.rol === "administrador") {
-      setPantalla("admin");
-      return;
-    }
-
-    // Si cajero tiene sesión activa → saltar directo al menú
+    if (u.rol === "administrador") { setPantalla("admin"); return; }
     if (sesionActiva) {
       setSesionCajaId(sesionActiva.id);
       setSucursalId(sesionActiva.sucursal_id);
@@ -64,9 +58,18 @@ export default function Home() {
       setPantalla("menu");
       return;
     }
-
-    // Sin sesión activa → seleccionar sucursal
     setPantalla("punto");
+  };
+
+  // ── Cerrar sesión del cajero (NO cierra la sesión de caja) ──
+  const cerrarSesionCajero = () => {
+    setCarrito([]);
+    setProductoActual(null);
+    setMontoRecibido(undefined);
+    setConFactura(false);
+    setDatosFactura(undefined);
+    setUsuarioActual(null);
+    setPantalla("login");
   };
 
   const agregarAlCarrito = (cantidad: number) => {
@@ -100,11 +103,7 @@ export default function Home() {
         {pantalla === "punto" && (
           <PuntoVentaScreen
             esAdmin={usuarioActual?.rol === "administrador"}
-            onSeleccionar={(id, nombre) => {
-              setSucursalId(id);
-              setPuntoNombre(nombre);
-              setPantalla("caja");
-            }}
+            onSeleccionar={(id, nombre) => { setSucursalId(id); setPuntoNombre(nombre); setPantalla("caja"); }}
             onBack={() => setPantalla(usuarioActual?.rol === "administrador" ? "admin" : "login")}
           />
         )}
@@ -114,18 +113,18 @@ export default function Home() {
             punto={puntoNombre}
             usuario={usuarioActual?.nombre ?? ""}
             usuarioId={usuarioActual?.id ?? ""}
-            onAbrir={(sesionId) => {
-              setSesionCajaId(sesionId);
-              setPantalla("menu");
-            }}
+            onAbrir={(sesionId) => { setSesionCajaId(sesionId); setPantalla("menu"); }}
             onBack={() => setPantalla("punto")}
           />
         )}
         {pantalla === "menu" && (
           <MenuScreen
             carrito={carrito}
+            usuario={usuarioActual?.nombre ?? ""}
+            sucursal={puntoNombre}
             onSeleccionarSabor={(nombre) => { setProductoActual(nombre); setPantalla("cantidad"); }}
             onVerCarrito={() => setPantalla("carrito")}
+            onCerrarSesion={cerrarSesionCajero}
           />
         )}
         {pantalla === "cantidad" && productoActual && (
@@ -138,30 +137,25 @@ export default function Home() {
         {pantalla === "carrito" && (
           <CarritoScreen
             carrito={carrito}
+            usuario={usuarioActual?.nombre ?? ""}
+            sucursal={puntoNombre}
             onEliminarItem={(n) => setCarrito((p) => p.filter((i) => i.nombre !== n))}
             onVaciarCarrito={() => setCarrito([])}
             onFinalizarVenta={() => setPantalla("factura")}
             onBack={() => setPantalla("menu")}
+            onCerrarSesion={cerrarSesionCajero}
           />
         )}
         {pantalla === "factura" && (
           <FacturaScreen
-            onContinuar={(cf, datos) => {
-              setConFactura(cf);
-              setDatosFactura(datos);
-              setPantalla("pago");
-            }}
+            onContinuar={(cf, datos) => { setConFactura(cf); setDatosFactura(datos); setPantalla("pago"); }}
             onBack={() => setPantalla("carrito")}
           />
         )}
         {pantalla === "pago" && (
           <PagoScreen
             total={totalCarrito}
-            onConfirmar={(metodo, monto) => {
-              setMetodoPago(metodo);
-              setMontoRecibido(monto);
-              setPantalla("confirmacion");
-            }}
+            onConfirmar={(metodo, monto) => { setMetodoPago(metodo); setMontoRecibido(monto); setPantalla("confirmacion"); }}
             onBack={() => setPantalla("factura")}
           />
         )}
@@ -193,8 +187,6 @@ export default function Home() {
             onCerrarSesion={() => { setUsuarioActual(null); setPantalla("login"); }}
           />
         )}
-
-        {/* Usuarios */}
         {pantalla === "admin_usuarios" && (
           <UsuariosScreen
             onNuevo={() => { setUsuarioEditar(undefined); setPantalla("admin_nuevo_usuario"); }}
@@ -209,8 +201,6 @@ export default function Home() {
             onBack={() => setPantalla("admin_usuarios")}
           />
         )}
-
-        {/* Sucursales */}
         {pantalla === "admin_sucursales" && (
           <SucursalesScreen
             onNueva={() => { setSucursalEditar(undefined); setPantalla("admin_nueva_sucursal"); }}
