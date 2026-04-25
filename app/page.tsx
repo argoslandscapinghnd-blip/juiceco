@@ -49,12 +49,13 @@ export default function Home() {
   const [sucursalEditar, setSucursalEditar] = useState<Sucursal | undefined>();
 
   const totalCarrito = carrito.reduce((s, i) => s + i.cantidad * i.precio, 0);
+  const esAdmin = usuarioActual?.rol === "administrador";
 
   const handleLogin = (
     u: Usuario,
     sesionActiva?: { id: number; sucursal_id: number; fondo_inicial: number; sucursal: { nombre: string; codigo: string } }
   ) => {
-    // ── Limpiar SIEMPRE al hacer login para no heredar datos de otro usuario ──
+    // Limpiar siempre al hacer login
     setSucursalId(0);
     setPuntoNombre("");
     setSesionCajaId(0);
@@ -128,12 +129,23 @@ export default function Home() {
           <LoginScreen onIngresar={handleLogin} />
         )}
 
-        {/* ── CAJERO ── */}
+        {/* ── CAJERO / ADMIN MODO VENTA ── */}
         {pantalla === "punto" && (
           <PuntoVentaScreen
-            esAdmin={usuarioActual?.rol === "administrador"}
-            onSeleccionar={(id, nombre) => { setSucursalId(id); setPuntoNombre(nombre); setPantalla("caja"); }}
-            onBack={() => setPantalla(usuarioActual?.rol === "administrador" ? "admin" : "login")}
+            esAdmin={esAdmin}
+            usuarioId={usuarioActual?.id}
+            onSeleccionar={(id, nombre) => {
+              setSucursalId(id);
+              setPuntoNombre(nombre);
+              setPantalla("caja");
+            }}
+            onContinuar={(id, nombre, sesionId) => {
+              setSucursalId(id);
+              setPuntoNombre(nombre);
+              setSesionCajaId(sesionId);
+              setPantalla("menu");
+            }}
+            onBack={() => setPantalla(esAdmin ? "admin" : "login")}
           />
         )}
         {pantalla === "caja" && (
@@ -224,7 +236,7 @@ export default function Home() {
             onSucursales={() => setPantalla("admin_sucursales")}
             onInventario={() => alert("Próximamente")}
             onReportes={() => alert("Próximamente")}
-            onModoCajero={() => sesionCajaId > 0 ? setPantalla("menu") : setPantalla("punto")}
+            onModoCajero={() => setPantalla("punto")}
             onCerrarSesion={() => { setUsuarioActual(null); setPantalla("login"); }}
           />
         )}

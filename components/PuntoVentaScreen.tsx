@@ -12,15 +12,20 @@ interface SucursalConEstado extends Sucursal {
   ocupada:      boolean;
   cajeroActivo: string | null;
   sesionId:     number | null;
+  usuarioId:    string | null;
 }
 
 interface Props {
   esAdmin?:      boolean;
+  usuarioId?:    string;
   onSeleccionar: (sucursalId: number, nombre: string) => void;
+  onContinuar:   (sucursalId: number, nombre: string, sesionId: number) => void;
   onBack:        () => void;
 }
 
-export default function PuntoVentaScreen({ esAdmin, onSeleccionar, onBack }: Props) {
+export default function PuntoVentaScreen({
+  esAdmin, usuarioId, onSeleccionar, onContinuar, onBack,
+}: Props) {
   const [sucursales, setSucursales] = useState<SucursalConEstado[]>([]);
   const [cargando,   setCargando]   = useState(true);
   const [liberando,  setLiberando]  = useState<number | null>(null);
@@ -37,19 +42,24 @@ export default function PuntoVentaScreen({ esAdmin, onSeleccionar, onBack }: Pro
 
     const { data: sesiones } = await supabase
       .from("sesiones_caja")
-      .select("id, sucursal_id, usuario_nombre")
+      .select("id, sucursal_id, usuario_nombre, usuario_id")
       .eq("activa", true);
 
-    const sesionesMap: Record<number, { nombre: string; id: number }> = {};
+    const sesionesMap: Record<number, { nombre: string; id: number; usuarioId: string }> = {};
     (sesiones ?? []).forEach((s: any) => {
-      sesionesMap[s.sucursal_id] = { nombre: s.usuario_nombre, id: s.id };
+      sesionesMap[s.sucursal_id] = {
+        nombre:    s.usuario_nombre,
+        id:        s.id,
+        usuarioId: s.usuario_id,
+      };
     });
 
     const resultado: SucursalConEstado[] = (suc ?? []).map((s: Sucursal) => ({
       ...s,
       ocupada:      !!sesionesMap[s.id],
-      cajeroActivo: sesionesMap[s.id]?.nombre ?? null,
-      sesionId:     sesionesMap[s.id]?.id ?? null,
+      cajeroActivo: sesionesMap[s.id]?.nombre    ?? null,
+      sesionId:     sesionesMap[s.id]?.id        ?? null,
+      usuarioId:    sesionesMap[s.id]?.usuarioId ?? null,
     }));
 
     setSucursales(resultado);
@@ -108,10 +118,10 @@ export default function PuntoVentaScreen({ esAdmin, onSeleccionar, onBack }: Pro
     <section>
       <Header titulo="Seleccione punto de venta" onBack={onBack} />
 
-      {/* Leyenda para admin */}
+      {/* Aviso admin */}
       {esAdmin && (
         <div style={{ background: "#e3f2fd", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#1565c0" }}>
-          🛡️ <strong>Modo Admin:</strong> Puedes vender en cualquier sucursal libre o liberar las ocupadas.
+          🛡️ <strong>Modo Admin:</strong> Continúa en tu sucursal, vende en una libre o libera las ocupadas.
         </div>
       )}
 
@@ -123,73 +133,96 @@ export default function PuntoVentaScreen({ esAdmin, onSeleccionar, onBack }: Pro
           <p>No hay sucursales disponibles</p>
         </div>
       ) : (
-        sucursales.map((s) => (
-          <div
-            key={s.id}
-            style={{
-              marginBottom: 10, borderRadius: 12,
-              border: `1px solid ${s.ocupada ? "#e0e0e0" : colors.border}`,
-              background: s.ocupada ? "#f9f9f9" : colors.white,
-              overflow: "hidden",
-              boxShadow: s.ocupada ? "none" : "0 1px 4px rgba(0,0,0,0.05)",
-              position: "relative",
-            }}
-          >
-            {/* Marca de agua EN USO */}
-            {s.ocupada && (
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-                <span style={{ fontWeight: "bold", color: colors.danger, opacity: 0.12, transform: "rotate(-20deg)", fontSize: "28px", letterSpacing: 2, textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                  EN USO
-                </span>
-              </div>
-            )}
+        sucursales.map((s) => {
+          const esMia = esAdmin && s.ocupada && s.usuarioId === usuarioId;
+          const ocupadaPorOtro = s.ocupada && !esMia;
 
-            {/* Fila principal */}
-            <button
-              disabled={s.ocupada && !esAdmin}
-              onClick={() => !s.ocupada && onSeleccionar(s.id, `${s.codigo} - ${s.nombre}`)}
+          return (
+            <div
+              key={s.id}
               style={{
-                width: "100%", padding: "16px 18px", background: "transparent",
-                border: "none", cursor: s.ocupada ? "not-allowed" : "pointer",
-                textAlign: "left", display: "flex", justifyContent: "space-between",
-                alignItems: "center", opacity: s.ocupada ? 0.7 : 1,
+                marginBottom: 10, borderRadius: 12,
+                border: `2px solid ${esMia ? colors.primary : ocupadaPorOtro ? "#e0e0e0" : colors.border}`,
+                background: esMia ? colors.primaryLight : ocupadaPorOtro ? "#f9f9f9" : colors.white,
+                overflow: "hidden",
+                boxShadow: ocupadaPorOtro ? "none" : "0 1px 4px rgba(0,0,0,0.08)",
+                position: "relative",
               }}
             >
-              <div>
-                <div style={{ fontWeight: "bold", color: colors.textPrimary, fontSize: 15 }}>
-                  {s.codigo} - {s.nombre}
-                </div>
-                <div style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>📍 {s.ciudad}</div>
-                {s.ocupada && s.cajeroActivo && (
-                  <div style={{ fontSize: 12, color: colors.danger, marginTop: 4, fontWeight: "bold" }}>
-                    🔒 En uso por: {s.cajeroActivo}
-                  </div>
-                )}
-              </div>
-              <div style={{ marginLeft: 12, flexShrink: 0 }}>
-                {s.ocupada ? (
-                  <span style={{ fontSize: 11, fontWeight: "bold", padding: "4px 10px", borderRadius: 20, background: "#fdecea", color: colors.danger }}>
-                    OCUPADA
+              {/* Marca de agua EN USO para sucursales de otros */}
+              {ocupadaPorOtro && (
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                  <span style={{ fontWeight: "bold", color: colors.danger, opacity: 0.12, transform: "rotate(-20deg)", fontSize: "28px", letterSpacing: 2, textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                    EN USO
                   </span>
-                ) : (
-                  <span style={{ color: colors.textMuted, fontSize: 20 }}>›</span>
-                )}
-              </div>
-            </button>
+                </div>
+              )}
 
-            {/* Botones admin para sucursales ocupadas */}
-            {esAdmin && s.ocupada && (
-              <div style={{ padding: "0 18px 14px", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                <button
-                  onClick={() => setConfirmar(s)}
-                  style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#fdecea", color: colors.danger, fontWeight: "bold", fontSize: 12, cursor: "pointer" }}
-                >
-                  🔓 Liberar
-                </button>
+              {/* Info sucursal */}
+              <div style={{ padding: "16px 18px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <div style={{ fontWeight: "bold", color: esMia ? colors.primary : colors.textPrimary, fontSize: 15 }}>
+                      {esMia ? "⭐ " : ""}{s.codigo} - {s.nombre}
+                    </div>
+                    <div style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>📍 {s.ciudad}</div>
+                    {s.ocupada && s.cajeroActivo && (
+                      <div style={{ fontSize: 12, marginTop: 4, fontWeight: "bold", color: esMia ? colors.primary : colors.danger }}>
+                        {esMia ? "✅ Tu sucursal activa" : `🔒 En uso por: ${s.cajeroActivo}`}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    {ocupadaPorOtro && (
+                      <span style={{ fontSize: 11, fontWeight: "bold", padding: "4px 10px", borderRadius: 20, background: "#fdecea", color: colors.danger }}>
+                        OCUPADA
+                      </span>
+                    )}
+                    {esMia && (
+                      <span style={{ fontSize: 11, fontWeight: "bold", padding: "4px 10px", borderRadius: 20, background: colors.primaryLight, color: colors.primary }}>
+                        MI SUCURSAL
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Botones de acción */}
+                <div style={{ display: "flex", gap: 8, marginTop: 12, justifyContent: "flex-end" }}>
+
+                  {/* Sucursal libre → Abrir caja */}
+                  {!s.ocupada && (
+                    <button
+                      onClick={() => onSeleccionar(s.id, `${s.codigo} - ${s.nombre}`)}
+                      style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: colors.primary, color: "white", fontWeight: "bold", fontSize: 13, cursor: "pointer" }}
+                    >
+                      🧾 Abrir caja aquí
+                    </button>
+                  )}
+
+                  {/* Mi sucursal → Continuar vendiendo */}
+                  {esMia && (
+                    <button
+                      onClick={() => onContinuar(s.id, `${s.codigo} - ${s.nombre}`, s.sesionId!)}
+                      style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: colors.primary, color: "white", fontWeight: "bold", fontSize: 13, cursor: "pointer" }}
+                    >
+                      ▶️ Continuar vendiendo
+                    </button>
+                  )}
+
+                  {/* Admin puede liberar cualquier sucursal ocupada */}
+                  {esAdmin && s.ocupada && (
+                    <button
+                      onClick={() => setConfirmar(s)}
+                      style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#fdecea", color: colors.danger, fontWeight: "bold", fontSize: 13, cursor: "pointer" }}
+                    >
+                      🔓 Liberar
+                    </button>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-        ))
+            </div>
+          );
+        })
       )}
 
       <button style={btnSecondary} onClick={cargar}>
