@@ -16,7 +16,6 @@ interface Props {
   sucursalId:     number;
   usuarioId:      string;
   usuarioNombre:  string;
-  usuarioNombre:  string;
   conFactura:     boolean;
   datosFactura?:  DatosFactura;
   onNuevaVenta:   () => void;
@@ -35,11 +34,10 @@ export default function ConfirmacionScreen({
   usuarioNombre, conFactura, datosFactura,
   onNuevaVenta,
 }: Props) {
-  const [guardado,      setGuardado]      = useState(false);
-  const [ventaEnSesion, setVentaEnSesion] = useState<number | null>(null);
-  const [ventaId,       setVentaId]       = useState<number | null>(null);
+  const [guardado,       setGuardado]       = useState(false);
+  const [ventaEnSesion,  setVentaEnSesion]  = useState<number | null>(null);
   const [sucursalNombre, setSucursalNombre] = useState("");
-  const [error,         setError]         = useState("");
+  const [error,          setError]          = useState("");
 
   const cambio = metodo === "efectivo" && montoRecibido
     ? Math.max(0, montoRecibido - total) : null;
@@ -48,7 +46,6 @@ export default function ConfirmacionScreen({
 
   const guardarVenta = async () => {
     try {
-      // Obtener nombre de sucursal
       const { data: suc } = await supabase
         .from("sucursales").select("nombre, codigo").eq("id", sucursalId).single();
       if (suc) setSucursalNombre(`${suc.codigo} - ${suc.nombre}`);
@@ -77,7 +74,6 @@ export default function ConfirmacionScreen({
         .from("ventas").select("*", { count: "exact", head: true })
         .eq("sesion_id", sesionCajaId);
 
-      setVentaId(venta.id);
       setVentaEnSesion(count ?? null);
       setGuardado(true);
     } catch (err: any) {
@@ -119,23 +115,13 @@ export default function ConfirmacionScreen({
         <title>Ticket #${ventaEnSesion}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            width: 80mm;
-            margin: 0 auto;
-            padding: 8px;
-            color: #000;
-          }
+          body { font-family: 'Courier New', monospace; font-size: 12px; width: 80mm; margin: 0 auto; padding: 8px; color: #000; }
           .center { text-align: center; }
           .logo { font-size: 20px; font-weight: bold; letter-spacing: 2px; }
           .divider { border: none; border-top: 1px dashed #000; margin: 6px 0; }
           table { width: 100%; border-collapse: collapse; }
           .total-row td { font-weight: bold; font-size: 14px; padding-top: 4px; }
-          @media print {
-            body { width: 80mm; }
-            @page { size: 80mm auto; margin: 0; }
-          }
+          @media print { body { width: 80mm; } @page { size: 80mm auto; margin: 0; } }
         </style>
       </head>
       <body>
@@ -146,11 +132,8 @@ export default function ConfirmacionScreen({
           <p style="font-size:11px">${fecha}</p>
           <p style="font-size:11px">Venta #${ventaEnSesion} del turno</p>
         </div>
-
         <hr class="divider">
-
         ${facturaHTML}
-
         <table>
           <thead>
             <tr style="border-bottom:1px solid #000">
@@ -161,9 +144,7 @@ export default function ConfirmacionScreen({
           </thead>
           <tbody>${itemsHTML}</tbody>
         </table>
-
         <hr class="divider">
-
         <table>
           <tr class="total-row">
             <td>TOTAL</td><td></td>
@@ -175,7 +156,6 @@ export default function ConfirmacionScreen({
           </tr>
           ${cambioHTML}
         </table>
-
         <hr class="divider">
         <p class="center" style="font-size:11px;margin-top:4px">¡Gracias por su compra!</p>
         <p class="center" style="font-size:10px;color:#666">juiceco.vercel.app</p>
@@ -191,7 +171,7 @@ export default function ConfirmacionScreen({
       setTimeout(() => {
         ventana.print();
         ventana.close();
-        onNuevaVenta(); // regresa al menú después de imprimir
+        onNuevaVenta();
       }, 500);
     }
   };
@@ -202,11 +182,7 @@ export default function ConfirmacionScreen({
         <div style={{ width: 72, height: 72, borderRadius: "50%", background: colors.primaryLight, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 36 }}>
           ✅
         </div>
-
-        <h2 style={{ color: colors.primary, fontSize: 22, marginTop: 0, marginBottom: 4 }}>
-          ¡Venta realizada!
-        </h2>
-
+        <h2 style={{ color: colors.primary, fontSize: 22, marginTop: 0, marginBottom: 4 }}>¡Venta realizada!</h2>
         {ventaEnSesion !== null && (
           <div style={{ marginBottom: 20 }}>
             <span style={{ fontSize: 13, color: colors.textMuted }}>Venta </span>
@@ -214,40 +190,27 @@ export default function ConfirmacionScreen({
             <span style={{ fontSize: 13, color: colors.textMuted }}> del turno</span>
           </div>
         )}
-
         {!guardado && <p style={{ color: colors.textMuted, fontSize: 13, marginBottom: 20 }}>Guardando...</p>}
         {error && <p style={{ color: colors.danger, fontSize: 13, marginBottom: 16 }}>⚠️ {error}</p>}
-
         <div style={{ textAlign: "left", marginBottom: 28 }}>
           {carrito.map((item) => (
             <FilaResumen key={item.nombre} label={`${item.nombre} x${item.cantidad}`} valor={`L ${fmt(item.cantidad * item.precio)}`} />
           ))}
           <div style={{ borderTop: `2px solid ${colors.border}`, margin: "8px 0" }} />
-          <FilaResumen label="Total"  valor={`L ${fmt(total)}`} bold />
-          <FilaResumen label="Pago"   valor={METODO_LABEL[metodo]} />
-          {cambio !== null && (
-            <FilaResumen label="Cambio" valor={`L ${fmt(cambio)}`} color={colors.primary} bold />
-          )}
+          <FilaResumen label="Total" valor={`L ${fmt(total)}`} bold />
+          <FilaResumen label="Pago"  valor={METODO_LABEL[metodo]} />
+          {cambio !== null && <FilaResumen label="Cambio" valor={`L ${fmt(cambio)}`} color={colors.primary} bold />}
         </div>
-
-        <button
-          style={{ ...btnSecondary, marginBottom: 12, opacity: guardado ? 1 : 0.5 }}
-          onClick={imprimirTicket}
-          disabled={!guardado}
-        >
+        <button style={{ ...btnSecondary, marginBottom: 12, opacity: guardado ? 1 : 0.5 }} onClick={imprimirTicket} disabled={!guardado}>
           🖨️ IMPRIMIR TICKET
         </button>
-        <button style={btnPrimary} onClick={onNuevaVenta}>
-          NUEVA VENTA
-        </button>
+        <button style={btnPrimary} onClick={onNuevaVenta}>NUEVA VENTA</button>
       </div>
     </section>
   );
 }
 
-function FilaResumen({ label, valor, color, bold }: {
-  label: string; valor: string; color?: string; bold?: boolean;
-}) {
+function FilaResumen({ label, valor, color, bold }: { label: string; valor: string; color?: string; bold?: boolean; }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f0f0f0" }}>
       <span style={{ color: "#888", fontSize: 14 }}>{label}</span>
