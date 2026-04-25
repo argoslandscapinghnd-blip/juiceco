@@ -14,6 +14,7 @@ import PagoScreen         from "@/components/PagoScreen";
 import ConfirmacionScreen from "@/components/ConfirmacionScreen";
 import MiTurnoScreen      from "@/components/MiTurnoScreen";
 import AdminMenuScreen    from "@/components/AdminMenuScreen";
+import MaestrosScreen     from "@/components/MaestrosScreen";
 import UsuariosScreen     from "@/components/UsuariosScreen";
 import FormUsuarioScreen  from "@/components/FormUsuarioScreen";
 import SucursalesScreen   from "@/components/SucursalesScreen";
@@ -144,17 +145,24 @@ export default function Home() {
           />
         )}
 
+        {/* ── ADMIN ── */}
         {pantalla === "admin" && (
           <AdminMenuScreen usuario={usuarioActual?.nombre ?? ""}
             onUsuarios={() => setPantalla("admin_usuarios")}
             onSucursales={() => setPantalla("admin_sucursales")}
+            onMaestros={() => setPantalla("admin_maestros")}
+            onReportes={() => alert("Próximamente")}
+            onModoCajero={() => setPantalla("punto")}
+            onCerrarSesion={() => { setUsuarioActual(null); setPantalla("login"); }}
+          />
+        )}
+        {pantalla === "admin_maestros" && (
+          <MaestrosScreen
             onBebidas={() => setPantalla("admin_bebidas")}
             onUnidades={() => setPantalla("admin_unidades")}
             onInsumos={() => setPantalla("admin_insumos")}
             onRecetas={() => setPantalla("admin_recetas")}
-            onReportes={() => alert("Próximamente")}
-            onModoCajero={() => setPantalla("punto")}
-            onCerrarSesion={() => { setUsuarioActual(null); setPantalla("login"); }}
+            onBack={() => setPantalla("admin")}
           />
         )}
         {pantalla === "admin_usuarios" && (
@@ -170,22 +178,22 @@ export default function Home() {
           <FormSucursalScreen sucursalEditar={sucursalEditar} onGuardar={() => { setSucursalEditar(undefined); setPantalla("admin_sucursales"); }} onBack={() => setPantalla("admin_sucursales")} />
         )}
         {pantalla === "admin_bebidas" && (
-          <BebidasScreen onNuevo={() => { setBebidaEditar(undefined); setPantalla("admin_nueva_bebida"); }} onEditar={(p) => { setBebidaEditar(p); setPantalla("admin_editar_bebida"); }} onBack={() => setPantalla("admin")} />
+          <BebidasScreen onNuevo={() => { setBebidaEditar(undefined); setPantalla("admin_nueva_bebida"); }} onEditar={(p) => { setBebidaEditar(p); setPantalla("admin_editar_bebida"); }} onBack={() => setPantalla("admin_maestros")} />
         )}
         {(pantalla === "admin_nueva_bebida" || pantalla === "admin_editar_bebida") && (
           <FormBebidaScreen bebidaEditar={bebidaEditar} onGuardar={() => { setBebidaEditar(undefined); setPantalla("admin_bebidas"); }} onBack={() => setPantalla("admin_bebidas")} />
         )}
         {pantalla === "admin_unidades" && (
-          <UnidadesScreen onBack={() => setPantalla("admin")} />
+          <UnidadesScreen onBack={() => setPantalla("admin_maestros")} />
         )}
         {pantalla === "admin_insumos" && (
-          <InsumosScreen onNuevo={() => { setInsumoEditar(undefined); setPantalla("admin_nuevo_insumo"); }} onEditar={(i) => { setInsumoEditar(i); setPantalla("admin_editar_insumo"); }} onBack={() => setPantalla("admin")} />
+          <InsumosScreen onNuevo={() => { setInsumoEditar(undefined); setPantalla("admin_nuevo_insumo"); }} onEditar={(i) => { setInsumoEditar(i); setPantalla("admin_editar_insumo"); }} onBack={() => setPantalla("admin_maestros")} />
         )}
         {(pantalla === "admin_nuevo_insumo" || pantalla === "admin_editar_insumo") && (
           <FormInsumoScreen insumoEditar={insumoEditar} onGuardar={() => { setInsumoEditar(undefined); setPantalla("admin_insumos"); }} onBack={() => setPantalla("admin_insumos")} />
         )}
         {pantalla === "admin_recetas" && (
-          <RecetasScreen onBack={() => setPantalla("admin")} />
+          <RecetasScreen onBack={() => setPantalla("admin_maestros")} />
         )}
 
       </div>
