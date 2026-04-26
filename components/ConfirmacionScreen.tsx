@@ -54,7 +54,8 @@ export default function ConfirmacionScreen({
         .from("ventas")
         .insert({
           sesion_id: sesionCajaId, sucursal_id: sucursalId, usuario_id: usuarioId,
-          total, metodo_pago: metodo, con_factura: conFactura,
+         total, metodo_pago: metodo, con_factura: conFactura,
+         creada_en: new Date().toISOString(),
           rtn: datosFactura?.rtn ?? null, nombre_fiscal: datosFactura?.nombre ?? null,
           correo_fiscal: datosFactura?.correo ?? null,
         })

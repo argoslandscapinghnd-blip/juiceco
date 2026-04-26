@@ -96,7 +96,11 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
   const [enviando,   setEnviando]   = useState(false);
 
   const getRange = useCallback((): { from: string; to: string } => {
-    if (tab === "hoy") return { from: todayStr, to: todayStr };
+    if (tab === "hoy") {
+      const inicio = new Date(); inicio.setHours(0, 0, 0, 0);
+      const fin    = new Date(); fin.setHours(23, 59, 59, 999);
+      return { from: inicio.toISOString(), to: fin.toISOString() };
+    }
     if (tab === "semana") return { from: weekFrom, to: weekTo };
     const [y, m] = monthValue.split("-").map(Number);
     return { from: `${y}-${String(m).padStart(2, "0")}-01`, to: toDateStr(new Date(y, m, 0)) };
@@ -106,8 +110,8 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
     setLoading(true);
     try {
       const { from, to } = getRange();
-      const fromTs = `${from}T00:00:00`;
-      const toTs   = `${to}T23:59:59`;
+      const fromTs = from.includes("T") ? from : `${from}T00:00:00`;
+      const toTs   = to.includes("T")   ? to   : `${to}T23:59:59`;
 
       const { data: sucData } = await supabase.from("sucursales").select("id, nombre, codigo");
       const { data: usrData } = await supabase.from("usuarios").select("id, nombre");
@@ -201,156 +205,181 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const fecha = new Date().toLocaleDateString("es-HN", { day: "2-digit", month: "2-digit", year: "numeric" });
       const hora  = new Date().toLocaleTimeString("es-HN", { hour: "2-digit", minute: "2-digit" });
-      const W = 210, margin = 16;
+      const W = 210, margin = 14;
       let y = 0;
 
-      // Header
+      // ── Header verde ──
       doc.setFillColor(20, 83, 45);
-      doc.rect(0, 0, W, 28, "F");
+      doc.rect(0, 0, W, 30, "F");
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(18); doc.setFont("helvetica", "bold");
-      doc.text("JUICE CO. — Dashboard", W / 2, 12, { align: "center" });
-      doc.setFontSize(10); doc.setFont("helvetica", "normal");
-      doc.text(`${fecha} · Generado a las ${hora}`, W / 2, 22, { align: "center" });
-      y = 36;
+      doc.setFontSize(20); doc.setFont("helvetica", "bold");
+      doc.text("JUICE CO.", W / 2, 13, { align: "center" });
+      doc.setFontSize(9); doc.setFont("helvetica", "normal");
+      doc.text(`Dashboard · ${fecha} · ${hora}`, W / 2, 23, { align: "center" });
+      y = 38;
 
-      // KPIs
-      doc.setTextColor(17, 24, 39);
+      // ── KPIs 2x2 ──
       const kpiData = [
-        { label: "Total Ventas", value: fmt(kpi.totalVentas), sub: `${kpi.numVentas} transacciones` },
-        { label: "Ticket Prom.", value: fmt(kpi.ticketPromedio), sub: "" },
-        { label: "Unidades", value: String(productos.reduce((s, p) => s + p.cantidad, 0)), sub: "" },
-        { label: "Utilidad Est.", value: fmt(kpi.utilidadEstimada), sub: "~36% margen" },
+        { label: "VENTAS DEL DIA", value: fmt(kpi.totalVentas), sub: `${kpi.numVentas} transacciones` },
+        { label: "TICKET PROMEDIO", value: fmt(kpi.ticketPromedio), sub: "" },
+        { label: "UNIDADES VENDIDAS", value: String(productos.reduce((s, p) => s + p.cantidad, 0)), sub: "" },
+        { label: "UTILIDAD ESTIMADA", value: fmt(kpi.utilidadEstimada), sub: "~36% margen" },
       ];
-      const kpiW = (W - margin * 2 - 9) / 4;
+      const kpiW = (W - margin * 2 - 6) / 2;
+      const kpiH = 24;
       kpiData.forEach((k, i) => {
-        const x = margin + i * (kpiW + 3);
-        doc.setFillColor(240, 253, 244);
-        doc.roundedRect(x, y, kpiW, 22, 3, 3, "F");
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        const x = margin + col * (kpiW + 6);
+        const ky = y + row * (kpiH + 4);
+        // card bg
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(229, 231, 235);
+        doc.roundedRect(x, ky, kpiW, kpiH, 3, 3, "FD");
+        // icon circle
+        doc.setFillColor(220, 252, 231);
+        doc.circle(x + 8, ky + 8, 5, "F");
+        // label
         doc.setFontSize(7); doc.setFont("helvetica", "bold");
         doc.setTextColor(107, 114, 128);
-        doc.text(k.label.toUpperCase(), x + kpiW / 2, y + 6, { align: "center" });
-        doc.setFontSize(11); doc.setFont("helvetica", "bold");
+        doc.text(k.label, x + 16, ky + 7);
+        // value
+        doc.setFontSize(14); doc.setFont("helvetica", "bold");
         doc.setTextColor(22, 163, 74);
-        doc.text(k.value, x + kpiW / 2, y + 14, { align: "center" });
+        doc.text(k.value, x + 6, ky + 17);
+        // sub
         if (k.sub) {
           doc.setFontSize(7); doc.setFont("helvetica", "normal");
           doc.setTextColor(156, 163, 175);
-          doc.text(k.sub, x + kpiW / 2, y + 19, { align: "center" });
+          doc.text(k.sub, x + 6, ky + 22);
         }
       });
-      y += 30;
+      y += 2 * (kpiH + 4) + 6;
 
-      const drawSection = (title: string) => {
+      // helper: draw card section
+      const drawCard = (title: string, contentH: number) => {
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(229, 231, 235);
+        doc.roundedRect(margin, y, W - margin * 2, contentH, 3, 3, "FD");
         doc.setFillColor(249, 250, 251);
-        doc.roundedRect(margin, y, W - margin * 2, 8, 2, 2, "F");
+        doc.roundedRect(margin, y, W - margin * 2, 9, 3, 3, "F");
+        doc.rect(margin, y + 6, W - margin * 2, 3, "F"); // fix bottom corners
         doc.setFontSize(10); doc.setFont("helvetica", "bold");
         doc.setTextColor(17, 24, 39);
-        doc.text(title, margin + 4, y + 5.5);
-        y += 12;
+        doc.text(title, margin + 5, y + 6.5);
+        y += 13;
       };
 
       const drawBar = (val: number, max: number, bx: number, by: number, bw: number, color: number[]) => {
         doc.setFillColor(229, 231, 235);
-        doc.roundedRect(bx, by, bw, 3, 1, 1, "F");
-        const filled = max > 0 ? (val / max) * bw : 0;
+        doc.roundedRect(bx, by, bw, 2.5, 1, 1, "F");
+        const filled = max > 0 ? Math.max((val / max) * bw, 1) : 0;
         if (filled > 0) {
           doc.setFillColor(color[0], color[1], color[2]);
-          doc.roundedRect(bx, by, filled, 3, 1, 1, "F");
+          doc.roundedRect(bx, by, filled, 2.5, 1, 1, "F");
         }
       };
 
-      // Sucursales
+      // ── Por sucursal ──
       if (sucursales.length > 0) {
-        drawSection("🏪  Por sucursal");
+        const secH = 13 + sucursales.length * 13 + 4;
+        drawCard("Por sucursal", secH);
         const maxS = sucursales[0].total;
         sucursales.forEach(s => {
-          doc.setFontSize(9); doc.setFont("helvetica", "normal");
-          doc.setTextColor(55, 65, 81);
-          doc.text(s.nombre, margin, y + 3);
-          drawBar(s.total, maxS, margin + 70, y, 80, [22, 163, 74]);
+          doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(55, 65, 81);
+          doc.text(s.nombre, margin + 3, y + 3);
+          drawBar(s.total, maxS, margin + 68, y, 88, [22, 163, 74]);
           doc.setFont("helvetica", "bold"); doc.setTextColor(22, 163, 74);
-          doc.text(fmt(s.total), W - margin, y + 3, { align: "right" });
-          doc.setFont("helvetica", "normal"); doc.setTextColor(156, 163, 175);
-          doc.setFontSize(7);
-          doc.text(`${s.num_ventas} ventas`, margin + 70, y + 8);
-          y += 12;
+          doc.text(fmt(s.total), W - margin - 2, y + 3, { align: "right" });
+          doc.setFont("helvetica", "normal"); doc.setTextColor(156, 163, 175); doc.setFontSize(7);
+          doc.text(`${s.num_ventas} ventas`, margin + 68, y + 8);
+          y += 13;
         });
-        y += 4;
+        y += 6;
       }
 
-      // Productos
+      // ── Top productos ──
       if (productos.length > 0) {
-        drawSection("🥤  Top productos");
+        const secH = 13 + productos.length * 11 + 4;
+        drawCard("Top productos", secH);
         const maxP = productos[0].cantidad;
-        const medals = ["1°","2°","3°","4°","5°","6°","7°","8°"];
         const colHex = ["#16a34a","#7c3aed","#ea580c","#0284c7","#dc2626","#ca8a04","#0891b2","#9333ea"];
+        const ranks = ["1","2","3","4","5","6","7","8"];
         productos.forEach((p, i) => {
           const hex = colHex[i % colHex.length];
-          const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-          doc.setFontSize(9); doc.setFont("helvetica", "bold");
-          doc.setTextColor(107, 114, 128);
-          doc.text(medals[i], margin, y + 3);
-          doc.setFont("helvetica", "normal"); doc.setTextColor(55, 65, 81);
-          doc.text(p.nombre_producto, margin + 8, y + 3);
-          drawBar(p.cantidad, maxP, margin + 80, y, 70, [r, g, b]);
-          doc.setFont("helvetica", "bold"); doc.setTextColor(r, g, b);
-          doc.text(`${p.cantidad} uds`, W - margin - 22, y + 3);
+          const cr = parseInt(hex.slice(1,3),16), cg = parseInt(hex.slice(3,5),16), cb = parseInt(hex.slice(5,7),16);
+          // rank badge
+          doc.setFillColor(cr, cg, cb);
+          doc.circle(margin + 5, y + 2.5, 3.5, "F");
+          doc.setFontSize(7); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255);
+          doc.text(ranks[i], margin + 5, y + 4, { align: "center" });
+          // name
+          doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(55, 65, 81);
+          doc.text(p.nombre_producto, margin + 11, y + 3.5);
+          drawBar(p.cantidad, maxP, margin + 78, y, 72, [cr, cg, cb]);
+          doc.setFont("helvetica", "bold"); doc.setTextColor(cr, cg, cb);
+          doc.text(`${p.cantidad} uds`, W - margin - 22, y + 3.5);
           doc.setTextColor(22, 163, 74);
-          doc.text(fmt(p.subtotal), W - margin, y + 3, { align: "right" });
-          y += 10;
+          doc.text(fmt(p.subtotal), W - margin - 2, y + 3.5, { align: "right" });
+          y += 11;
         });
-        y += 4;
-      }
-
-      // Cajeros
-      if (cajeros.length > 0) {
-        drawSection("👤  Por cajero");
-        doc.setFontSize(8); doc.setFont("helvetica", "bold");
-        doc.setTextColor(107, 114, 128);
-        doc.text("Cajero", margin, y);
-        doc.text("Ventas", margin + 80, y);
-        doc.text("Total", margin + 110, y);
-        doc.text("Promedio", W - margin, y, { align: "right" });
         y += 6;
+      }
+
+      // ── Por cajero ──
+      if (cajeros.length > 0) {
+        const secH = 13 + 7 + cajeros.length * 9 + 4;
+        drawCard("Por cajero", secH);
+        // header row
+        doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.setTextColor(107, 114, 128);
+        doc.text("Cajero", margin + 3, y);
+        doc.text("Ventas", margin + 90, y, { align: "right" });
+        doc.text("Total", margin + 128, y, { align: "right" });
+        doc.text("Promedio", W - margin - 2, y, { align: "right" });
+        doc.setDrawColor(243, 244, 246);
+        doc.line(margin, y + 2, W - margin, y + 2);
+        y += 7;
         cajeros.forEach(c => {
-          doc.setFont("helvetica", "normal"); doc.setTextColor(55, 65, 81);
-          doc.text(c.nombre, margin, y);
-          doc.text(String(c.num_ventas), margin + 80, y);
+          doc.setFont("helvetica", "normal"); doc.setTextColor(55, 65, 81); doc.setFontSize(9);
+          doc.text(c.nombre, margin + 3, y);
+          doc.text(String(c.num_ventas), margin + 90, y, { align: "right" });
           doc.setTextColor(22, 163, 74); doc.setFont("helvetica", "bold");
-          doc.text(fmt(c.total), margin + 110, y);
+          doc.text(fmt(c.total), margin + 128, y, { align: "right" });
           doc.setTextColor(107, 114, 128); doc.setFont("helvetica", "normal");
-          doc.text(fmt(c.total / (c.num_ventas || 1)), W - margin, y, { align: "right" });
-          y += 8;
+          doc.text(fmt(c.total / (c.num_ventas || 1)), W - margin - 2, y, { align: "right" });
+          y += 9;
+        });
+        y += 6;
+      }
+
+      // ── Método de pago ──
+      if (metodos.length > 0) {
+        const secH = 13 + metodos.length * 13 + 4;
+        drawCard("Metodo de pago", secH);
+        const maxM = metodos[0].total;
+        const metColors = [[22,163,74],[124,58,237],[234,88,12],[2,132,199]];
+        metodos.forEach((m, i) => {
+          const pct = kpi.totalVentas > 0 ? ((m.total / kpi.totalVentas) * 100).toFixed(0) : "0";
+          const mc = metColors[i % metColors.length];
+          const label = m.metodo_pago.charAt(0).toUpperCase() + m.metodo_pago.slice(1);
+          doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(55, 65, 81);
+          doc.text(label, margin + 3, y + 3);
+          drawBar(m.total, maxM, margin + 38, y, 100, mc);
+          doc.setFont("helvetica", "bold"); doc.setTextColor(mc[0], mc[1], mc[2]);
+          doc.text(`${pct}%`, margin + 38, y + 8);
+          doc.setTextColor(22, 163, 74);
+          doc.text(fmt(m.total), W - margin - 2, y + 3, { align: "right" });
+          doc.setTextColor(156, 163, 175); doc.setFont("helvetica", "normal"); doc.setFontSize(7);
+          doc.text(`${m.num_ventas} ventas`, W - margin - 2, y + 8, { align: "right" });
+          y += 13;
         });
         y += 4;
       }
 
-      // Métodos
-      if (metodos.length > 0) {
-        drawSection("💳  Método de pago");
-        const maxM = metodos[0].total;
-        metodos.forEach(m => {
-          const pct = kpi.totalVentas > 0 ? ((m.total / kpi.totalVentas) * 100).toFixed(0) : "0";
-          doc.setFontSize(9); doc.setFont("helvetica", "normal");
-          doc.setTextColor(55, 65, 81);
-          const label = m.metodo_pago.charAt(0).toUpperCase() + m.metodo_pago.slice(1);
-          doc.text(label, margin, y + 3);
-          drawBar(m.total, maxM, margin + 50, y, 90, [22, 163, 74]);
-          doc.setFont("helvetica", "bold"); doc.setTextColor(22, 163, 74);
-          doc.text(fmt(m.total), W - margin - 12, y + 3);
-          doc.setTextColor(107, 114, 128); doc.setFont("helvetica", "normal");
-          doc.setFontSize(7);
-          doc.text(`${pct}% · ${m.num_ventas} ventas`, margin + 50, y + 8);
-          y += 12;
-        });
-      }
-
-      // Footer
+      // ── Footer ──
       doc.setFontSize(8); doc.setTextColor(156, 163, 175);
-      doc.text("juiceco.vercel.app · Reporte generado automáticamente", W / 2, 285, { align: "center" });
+      doc.text("juiceco.vercel.app · Reporte generado automaticamente", W / 2, 287, { align: "center" });
 
-      // Convertir a base64
       const pdfBase64 = doc.output("datauristring").split(",")[1];
 
       // Enviar email con PDF adjunto
