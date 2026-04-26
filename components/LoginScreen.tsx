@@ -1,6 +1,6 @@
 "use client";
 // ─────────────────────────────────────────────
-//  JUICE CO. — Pantalla 1: Login (con Supabase)
+//  Lemon Lab — Pantalla 1: Login (con Supabase)
 // ─────────────────────────────────────────────
 import { useEffect, useRef, useState } from "react";
 import { colors, inputStyle, btnPrimary, cardStyle } from "./ui/styles";
@@ -51,7 +51,6 @@ export default function LoginScreen({ onIngresar }: Props) {
     setCargando(true);
     setError("");
 
-    // 1. Validar credenciales
     const { data: userData, error: errUser } = await supabase
       .from("usuarios")
       .select("*")
@@ -69,7 +68,6 @@ export default function LoginScreen({ onIngresar }: Props) {
       return;
     }
 
-    // 2. Verificar si tiene sesión activa — incluye fondo_inicial
     const { data: sesionData } = await supabase
       .from("sesiones_caja")
       .select("id, sucursal_id, fondo_inicial, sucursales(nombre, codigo)")
@@ -98,37 +96,38 @@ export default function LoginScreen({ onIngresar }: Props) {
   return (
     <section>
       <div style={{ textAlign: "center", marginBottom: 32, marginTop: 24 }}>
-       <div style={{ lineHeight: 1, marginBottom: 4 }}>
-  <span style={{
-    fontFamily: "'Cormorant Garamond', Georgia, serif",
-    fontWeight: 300,
-    fontSize: 38,
-    letterSpacing: "0.18em",
-    color: colors.primaryDark,
-    display: "block",
-    lineHeight: 1,
-  }}>Lemon</span>
-  <span style={{
-    fontFamily: "'Cormorant Garamond', Georgia, serif",
-    fontWeight: 300,
-    fontStyle: "italic",
-    fontSize: 38,
-    letterSpacing: "0.1em",
-    color: "#C9A84C",
-    display: "block",
-    lineHeight: 1,
-  }}>Lab</span>
-  <span style={{
-    fontFamily: "Georgia, serif",
-    fontSize: 8,
-    letterSpacing: "0.42em",
-    textTransform: "uppercase" as const,
-    color: colors.primaryDark,
-    opacity: 0.4,
-    display: "block",
-    marginTop: 6,
-  }}>Limonadas artesanales</span>
-</div>
+        <div style={{ lineHeight: 1, marginBottom: 4 }}>
+          <span style={{
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
+            fontWeight: 300,
+            fontSize: 38,
+            letterSpacing: "0.18em",
+            color: colors.primaryDark,
+            display: "block",
+            lineHeight: 1,
+          }}>Lemon</span>
+          <span style={{
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
+            fontWeight: 300,
+            fontStyle: "italic",
+            fontSize: 38,
+            letterSpacing: "0.1em",
+            color: "#C9A84C",
+            display: "block",
+            lineHeight: 1,
+          }}>Lab</span>
+          <span style={{
+            fontFamily: "Georgia, serif",
+            fontSize: 8,
+            letterSpacing: "0.42em",
+            textTransform: "uppercase" as const,
+            color: colors.primaryDark,
+            opacity: 0.4,
+            display: "block",
+            marginTop: 6,
+          }}>Limonadas artesanales</span>
+        </div>
+      </div>
 
       <div style={cardStyle}>
         <h2 style={{ marginTop: 0, marginBottom: 20, fontSize: 18 }}>Iniciar sesión</h2>
