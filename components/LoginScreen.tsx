@@ -116,13 +116,19 @@ export default function LoginScreen({ onIngresar }: Props) {
         marginBottom: 20,
       }}>
         <Image
-          src="/Logo.png"
-          alt="Lemon Lab"
-          width={350}
-          height={250}
-          style={{ objectFit: "contain", margin: "0 auto", display: "block" }}
-          priority
-        />
+  src="/Logo.png"
+  alt="Lemon Lab"
+  width={600}
+  height={350}
+  style={{ 
+    objectFit: "contain", 
+    margin: "0 auto", 
+    display: "block",
+    width: "85%",      // ← esto controla el tamaño visual
+    height: "auto"     // ← esto mantiene la proporción
+  }}
+  priority
+/>
         <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, margin: "10px 0 0", letterSpacing: "0.3em", textTransform: "uppercase" }}>
           Sistema de Punto de Venta
         </p>
