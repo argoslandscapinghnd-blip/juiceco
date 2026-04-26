@@ -118,8 +118,8 @@ export default function LoginScreen({ onIngresar }: Props) {
         <Image
   src="/Logo.png"
   alt="Lemon Lab"
-  width={600}
-  height={350}
+  width={1200}
+  height={700}
   style={{ 
     objectFit: "contain", 
     margin: "0 auto", 
