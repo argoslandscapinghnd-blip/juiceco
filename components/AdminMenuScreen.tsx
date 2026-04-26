@@ -42,9 +42,14 @@ export default function AdminMenuScreen({
         <div style={{ fontWeight: "bold", fontSize: 18, color: colors.primaryDark }}>🛡️ {usuario}</div>
         <div style={{ fontSize: 12, color: colors.primary, marginTop: 4 }}>Panel de Administrador</div>
       </div>
-      <button style={{ ...btnPrimary, marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "#0284c7" }} onClick={onEnviarDashboard}>
-        <span style={{ fontSize: 20 }}>📧</span><span>ENVIAR DASHBOARD POR EMAIL</span>
-      </button>
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <button style={{ ...btnPrimary, flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#0284c7" }} onClick={onEnviarDashboard}>
+          <span style={{ fontSize: 18 }}>📧</span><span>ENVIAR EMAIL</span>
+        </button>
+        <button style={{ ...btnPrimary, flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#7c3aed" }} onClick={() => window.open("/api/dashboard-pdf", "_blank")}>
+          <span style={{ fontSize: 18 }}>📄</span><span>VER PDF</span>
+        </button>
+      </div>
       <button style={{ ...btnPrimary, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }} onClick={onModoCajero}>
         <span style={{ fontSize: 20 }}>🧾</span><span>MODO CAJERO — Iniciar venta</span>
       </button>
