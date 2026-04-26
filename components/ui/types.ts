@@ -7,8 +7,7 @@ export type Pantalla =
   | "admin_bebidas" | "admin_nueva_bebida" | "admin_editar_bebida"
   | "admin_unidades"
   | "admin_insumos" | "admin_nuevo_insumo" | "admin_editar_insumo"
-  | "admin_dashboard"
-  | "admin_email_destinatarios";
+  | "admin_dashboard";
 
 export type ItemCarrito = { nombre: string; cantidad: number; precio: number; };
 export type DatosFactura = { rtn: string; nombre: string; correo: string; };

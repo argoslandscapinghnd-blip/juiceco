@@ -8,8 +8,6 @@ interface Props {
   onSucursales:         () => void;
   onMaestros:           () => void;
   onReportes:           () => void;
-  onEmailDestinatarios: () => void;
-  onEnviarDashboard:    () => void;
   onModoCajero:         () => void;
   onCerrarSesion:       () => void;
 }
@@ -19,16 +17,15 @@ const modulos = [
   { emoji: "🏪", titulo: "Sucursales", desc: "Crear, editar e inhabilitar sucursales",  key: "sucursales" },
   { emoji: "📚", titulo: "Maestros",   desc: "Bebidas, unidades, insumos y recetas",    key: "maestros"   },
   { emoji: "📊", titulo: "Dashboard",  desc: "Ventas, cajeros, productos y métodos",    key: "reportes"   },
-  { emoji: "📧", titulo: "Emails",     desc: "Destinatarios de reportes automáticos",   key: "email"      },
 ];
 
 export default function AdminMenuScreen({
   usuario, onUsuarios, onSucursales, onMaestros, onReportes,
-  onEmailDestinatarios, onModoCajero, onCerrarSesion,
+  onModoCajero, onCerrarSesion,
 }: Props) {
   const handlers: Record<string, () => void> = {
     usuarios: onUsuarios, sucursales: onSucursales, maestros: onMaestros,
-    reportes: onReportes, email: onEmailDestinatarios,
+    reportes: onReportes,
   };
 
   return (

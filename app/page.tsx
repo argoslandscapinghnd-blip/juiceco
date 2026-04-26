@@ -25,7 +25,6 @@ import FormBebidaScreen   from "@/components/FormBebidaScreen";
 import UnidadesScreen     from "@/components/UnidadesScreen";
 import InsumosScreen      from "@/components/InsumosScreen";
 import FormInsumoScreen              from "@/components/FormInsumoScreen";
-import EmailDestinatariosScreen from "@/components/EmailDestinatariosScreen";
 import DashboardScreen    from "@/components/DashboardScreen";
 
 export default function Home() {
@@ -58,14 +57,6 @@ export default function Home() {
   const totalCarrito = carrito.reduce((s, i) => s + i.cantidad * i.precio, 0);
   const esAdmin = usuarioActual?.rol === "administrador";
 
-  const handleEnviarDashboard = async () => {
-    try {
-      const res = await fetch("/api/dashboard-email", { method: "POST" });
-      const data = await res.json();
-      if (data.ok) alert(`✅ Dashboard enviado a ${data.enviado_a} destinatario(s)`);
-      else alert(`⚠️ ${data.msg || data.error || "Error al enviar"}`);
-    } catch { alert("Error al enviar el email"); }
-  };
 
   const handleLogin = (u: Usuario, sesionActiva?: { id: number; sucursal_id: number; fondo_inicial: number; sucursal: { nombre: string; codigo: string } }) => {
     setSucursalId(0); setPuntoNombre(""); setSesionCajaId(0); setFondoInicial(0);
@@ -220,8 +211,6 @@ export default function Home() {
             onSucursales={() => setPantalla("admin_sucursales")}
             onMaestros={() => setPantalla("admin_maestros")}
             onReportes={() => setPantalla("admin_dashboard")}
-            onEmailDestinatarios={() => setPantalla("admin_email_destinatarios")}
-            onEnviarDashboard={handleEnviarDashboard}
             onModoCajero={() => setPantalla("punto")}
             onCerrarSesion={() => { setUsuarioActual(null); setPantalla("login"); }}
           />
@@ -252,9 +241,6 @@ export default function Home() {
         )}
         {pantalla === "admin_insumos" && (
           <InsumosScreen onNuevo={() => { setInsumoEditar(undefined); setPantalla("admin_nuevo_insumo"); }} onEditar={(i) => { setInsumoEditar(i); setPantalla("admin_editar_insumo"); }} onBack={() => setPantalla("admin_maestros")} />
-        )}
-        {pantalla === "admin_email_destinatarios" && (
-          <EmailDestinatariosScreen onBack={() => setPantalla("admin")} />
         )}
         {pantalla === "admin_dashboard" && (
           <DashboardScreen onBack={() => setPantalla("admin")} />
