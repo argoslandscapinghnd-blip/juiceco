@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { colors } from "@/components/ui/styles";
+import { supabase } from "@/supabase";
 import { Pantalla, ItemCarrito, DatosFactura, MetodoPago, PRECIO_UNITARIO, Usuario, Sucursal, Producto, Insumo } from "@/components/ui/types";
 
 import LoginScreen        from "@/components/LoginScreen";
@@ -74,6 +75,7 @@ export default function Home() {
   };
 
   const cerrarSesionCajero = () => {
+    supabase.auth.signOut().catch(() => {});
     setCarrito([]); setProductoActual(null); setMontoRecibido(undefined);
     setConFactura(false); setDatosFactura(undefined);
     setUsuarioActual(null); setPantalla("login");
@@ -106,6 +108,7 @@ export default function Home() {
   const handleCierreCajaCompletado = () => {
     // Si era mi propia caja → limpiar sesión y logout
     if (!cierreCerradoPor) {
+      supabase.auth.signOut().catch(() => {});
       setSesionCajaId(0); setSucursalId(0); setPuntoNombre(""); setFondoInicial(0);
       setCarrito([]); setProductoActual(null);
       setUsuarioActual(null); setPantalla("login");
@@ -142,7 +145,7 @@ export default function Home() {
             onSeleccionar={(id, nombre) => { setSucursalId(id); setPuntoNombre(nombre); setPantalla("caja"); }}
             onContinuar={(id, nombre, sesionId) => { setSucursalId(id); setPuntoNombre(nombre); setSesionCajaId(sesionId); setPantalla("menu"); }}
             onCerrarCaja={abrirCierreDesidePunto}
-            onBack={() => setPantalla(esAdmin ? "admin" : "login")}
+            onBack={() => { if (!esAdmin) supabase.auth.signOut().catch(() => {}); setPantalla(esAdmin ? "admin" : "login"); }}
           />
         )}
         {pantalla === "caja" && (
@@ -212,7 +215,7 @@ export default function Home() {
             onMaestros={() => setPantalla("admin_maestros")}
             onReportes={() => setPantalla("admin_dashboard")}
             onModoCajero={() => setPantalla("punto")}
-            onCerrarSesion={() => { setUsuarioActual(null); setPantalla("login"); }}
+            onCerrarSesion={() => { supabase.auth.signOut().catch(() => {}); setUsuarioActual(null); setPantalla("login"); }}
           />
         )}
         {pantalla === "admin_maestros" && (

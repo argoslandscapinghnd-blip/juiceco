@@ -51,17 +51,31 @@ export default function LoginScreen({ onIngresar }: Props) {
     setCargando(true);
     setError("");
 
-    const { data: userData, error: errUser } = await supabase
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email:    `${usuarioText.trim()}@lemonlab.internal`,
+      password: password.trim(),
+    });
+
+    if (authError || !authData.user) {
+      setCargando(false);
+      setError("Usuario o contraseña incorrectos.");
+      setPassword("");
+      setVerPass(false);
+      setTimeout(() => passwordRef.current?.focus(), 100);
+      return;
+    }
+
+    const { data: userData, error: errPerfil } = await supabase
       .from("usuarios")
       .select("*")
-      .eq("usuario", usuarioText.trim())
-      .eq("password", password.trim())
+      .eq("auth_id", authData.user.id)
       .eq("activo", true)
       .single();
 
-    if (errUser || !userData) {
+    if (errPerfil || !userData) {
+      await supabase.auth.signOut();
       setCargando(false);
-      setError("Usuario o contraseña incorrectos.");
+      setError("Cuenta inactiva o sin perfil configurado.");
       setPassword("");
       setVerPass(false);
       setTimeout(() => passwordRef.current?.focus(), 100);
