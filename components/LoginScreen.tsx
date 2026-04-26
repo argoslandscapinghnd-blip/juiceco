@@ -111,8 +111,6 @@ export default function LoginScreen({ onIngresar }: Props) {
   return (
     <section>
       <div style={{
-        background: "linear-gradient(160deg, #14532d 0%, #166534 60%, #1a7a3d 100%)",
-        borderRadius: 24,
         padding: "36px 24px 28px",
         textAlign: "center",
         marginBottom: 20,
