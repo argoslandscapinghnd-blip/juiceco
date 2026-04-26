@@ -3,30 +3,32 @@ import { Logo } from "./ui/components";
 import { colors, cardStyle, btnPrimary } from "./ui/styles";
 
 interface Props {
-  usuario:        string;
-  onUsuarios:     () => void;
-  onSucursales:   () => void;
-  onMaestros:     () => void;
-  onReportes:     () => void;
+  usuario:              string;
+  onUsuarios:           () => void;
+  onSucursales:         () => void;
+  onMaestros:           () => void;
+  onReportes:           () => void;
   onEmailDestinatarios: () => void;
   onEnviarDashboard:    () => void;
-  onModoCajero:   () => void;
-  onCerrarSesion: () => void;
+  onModoCajero:         () => void;
+  onCerrarSesion:       () => void;
 }
 
 const modulos = [
-  { emoji: "👥", titulo: "Usuarios",   desc: "Crear, editar e inhabilitar usuarios",  key: "usuarios"   },
-  { emoji: "🏪", titulo: "Sucursales", desc: "Crear, editar e inhabilitar sucursales", key: "sucursales" },
-  { emoji: "📚", titulo: "Maestros",   desc: "Bebidas, unidades, insumos y recetas",   key: "maestros"   },
+  { emoji: "👥", titulo: "Usuarios",   desc: "Crear, editar e inhabilitar usuarios",   key: "usuarios"   },
+  { emoji: "🏪", titulo: "Sucursales", desc: "Crear, editar e inhabilitar sucursales",  key: "sucursales" },
+  { emoji: "📚", titulo: "Maestros",   desc: "Bebidas, unidades, insumos y recetas",    key: "maestros"   },
   { emoji: "📊", titulo: "Dashboard",  desc: "Ventas, cajeros, productos y métodos",    key: "reportes"   },
-  { emoji: "📧", titulo: "Emails",      desc: "Destinatarios de reportes automáticos",  key: "email"      },
+  { emoji: "📧", titulo: "Emails",     desc: "Destinatarios de reportes automáticos",   key: "email"      },
 ];
 
 export default function AdminMenuScreen({
-  usuario, onUsuarios, onSucursales, onMaestros, onReportes, onEmailDestinatarios, onEnviarDashboard, onModoCajero, onCerrarSesion,
+  usuario, onUsuarios, onSucursales, onMaestros, onReportes,
+  onEmailDestinatarios, onModoCajero, onCerrarSesion,
 }: Props) {
   const handlers: Record<string, () => void> = {
-    usuarios: onUsuarios, sucursales: onSucursales, maestros: onMaestros, reportes: onReportes, email: onEmailDestinatarios,
+    usuarios: onUsuarios, sucursales: onSucursales, maestros: onMaestros,
+    reportes: onReportes, email: onEmailDestinatarios,
   };
 
   return (
@@ -42,17 +44,11 @@ export default function AdminMenuScreen({
         <div style={{ fontWeight: "bold", fontSize: 18, color: colors.primaryDark }}>🛡️ {usuario}</div>
         <div style={{ fontSize: 12, color: colors.primary, marginTop: 4 }}>Panel de Administrador</div>
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-        <button style={{ ...btnPrimary, flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#0284c7" }} onClick={onEnviarDashboard}>
-          <span style={{ fontSize: 18 }}>📧</span><span>ENVIAR EMAIL</span>
-        </button>
-        <button style={{ ...btnPrimary, flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#7c3aed" }} onClick={() => window.open("/api/dashboard-pdf", "_blank")}>
-          <span style={{ fontSize: 18 }}>📄</span><span>VER PDF</span>
-        </button>
-      </div>
+
       <button style={{ ...btnPrimary, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }} onClick={onModoCajero}>
         <span style={{ fontSize: 20 }}>🧾</span><span>MODO CAJERO — Iniciar venta</span>
       </button>
+
       <div style={{ fontSize: 12, fontWeight: "bold", color: colors.textMuted, marginBottom: 10, letterSpacing: 1 }}>ADMINISTRACIÓN</div>
       {modulos.map((m) => (
         <button key={m.key} onClick={handlers[m.key]} style={{ ...cardStyle, width: "100%", display: "flex", alignItems: "center", gap: 16, cursor: "pointer", border: "none", textAlign: "left", marginBottom: 10 }}>
