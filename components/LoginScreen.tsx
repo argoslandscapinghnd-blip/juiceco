@@ -110,15 +110,24 @@ export default function LoginScreen({ onIngresar }: Props) {
 
   return (
     <section>
-      <div style={{ textAlign: "center", marginBottom: 32, marginTop: 24 }}>
+      <div style={{
+        background: "linear-gradient(160deg, #14532d 0%, #166534 60%, #1a7a3d 100%)",
+        borderRadius: 24,
+        padding: "36px 24px 28px",
+        textAlign: "center",
+        marginBottom: 20,
+      }}>
         <Image
           src="/Logo.png"
           alt="Lemon Lab"
-          width={280}
-          height={187}
-          style={{ objectFit: "contain", margin: "0 auto" }}
+          width={300}
+          height={200}
+          style={{ objectFit: "contain", margin: "0 auto", display: "block" }}
           priority
         />
+        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, margin: "10px 0 0", letterSpacing: "0.3em", textTransform: "uppercase" }}>
+          Sistema de Punto de Venta
+        </p>
       </div>
 
       <div style={cardStyle}>
