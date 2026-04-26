@@ -109,24 +109,24 @@ export default function LoginScreen({ onIngresar }: Props) {
   };
 
   return (
-    <section>
-      <div style={{
-        padding: "8px 12px 4px",
-        textAlign: "center",
-        marginBottom:4,
-      }}>
-        <Image
-  src="/Logo.png"
-  alt="Lemon Lab"
-  width={1200}
-  height={700}
-  style={{ 
-    objectFit: "contain", 
-    margin: "0 auto", 
-    display: "block",
-    width: "300%",      // ← esto controla el tamaño visual
-    height: "auto"     // ← esto mantiene la proporción
-  }}
+ <section>
+  <div style={{
+    padding: "8px 12px 4px",
+    textAlign: "center",
+    marginBottom: 4,
+  }}>
+    <Image
+      src="/Logo.png"
+      alt="Lemon Lab"
+      width={400}
+      height={200}
+      style={{ 
+        objectFit: "contain", 
+        margin: "0 auto", 
+        display: "block",
+        width: "75%",
+        height: "auto"
+      }}
   priority
 />
         <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, margin: "10px 0 0", letterSpacing: "0.3em", textTransform: "uppercase" }}>
