@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { colors, btnPrimary, btnSecondary, cardStyle } from "./ui/styles";
 import { MetodoPago, ItemCarrito, DatosFactura } from "./ui/types";
 import { supabase } from "@/supabase";
+import { esc, fmt } from "@/lib/utils";
 
 interface Props {
   total:          number;
@@ -21,8 +22,6 @@ interface Props {
 const METODO_LABEL: Record<MetodoPago, string> = {
   efectivo: "Efectivo", tarjeta: "Tarjeta", transferencia: "Transferencia",
 };
-
-const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
 
 export default function ConfirmacionScreen({
   total, metodo, montoRecibido, carrito,
@@ -92,7 +91,7 @@ export default function ConfirmacionScreen({
 
     const itemsHTML = carrito.map(i =>
       `<tr>
-        <td style="padding:2px 0">${i.nombre}</td>
+        <td style="padding:2px 0">${esc(i.nombre)}</td>
         <td style="text-align:center;padding:2px 4px">${i.cantidad}</td>
         <td style="text-align:right;padding:2px 0">L ${fmt(i.cantidad * i.precio)}</td>
       </tr>`
@@ -100,9 +99,9 @@ export default function ConfirmacionScreen({
 
     const facturaHTML = conFactura && datosFactura ? `
       <div style="border-top:1px dashed #ccc;margin:8px 0;padding-top:8px">
-        <p style="margin:2px 0"><strong>RTN:</strong> ${datosFactura.rtn}</p>
-        <p style="margin:2px 0"><strong>Nombre:</strong> ${datosFactura.nombre}</p>
-        ${datosFactura.correo ? `<p style="margin:2px 0"><strong>Correo:</strong> ${datosFactura.correo}</p>` : ""}
+        <p style="margin:2px 0"><strong>RTN:</strong> ${esc(datosFactura.rtn)}</p>
+        <p style="margin:2px 0"><strong>Nombre:</strong> ${esc(datosFactura.nombre)}</p>
+        ${datosFactura.correo ? `<p style="margin:2px 0"><strong>Correo:</strong> ${esc(datosFactura.correo)}</p>` : ""}
       </div>` : "";
 
     const cambioHTML = cambio !== null
@@ -126,8 +125,8 @@ export default function ConfirmacionScreen({
       </head><body>
         <div class="center">
           <div class="logo">🍋 Lemon Lab</div>
-          <p style="font-size:11px;margin-top:2px">${sucursalNombre}</p>
-          <p style="font-size:11px">Cajero: ${usuarioNombre}</p>
+          <p style="font-size:11px;margin-top:2px">${esc(sucursalNombre)}</p>
+          <p style="font-size:11px">Cajero: ${esc(usuarioNombre)}</p>
           <p style="font-size:11px">${fecha}</p>
           <p style="font-size:11px">Venta #${ventaEnSesion} del turno</p>
         </div>
