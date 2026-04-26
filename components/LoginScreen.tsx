@@ -111,9 +111,9 @@ export default function LoginScreen({ onIngresar }: Props) {
   return (
     <section>
       <div style={{
-        padding: "16px 24px 8px",
+        padding: "8px 12px 4px",
         textAlign: "center",
-        marginBottom:8,
+        marginBottom:4,
       }}>
         <Image
   src="/Logo.png"
