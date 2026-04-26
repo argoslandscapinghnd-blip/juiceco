@@ -1,32 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Fondo verde oscuro -->
   <rect width="512" height="512" rx="96" fill="#14532d"/>
-
-  <!-- Limón (elipse amarilla) -->
   <ellipse cx="256" cy="230" rx="108" ry="82" fill="#fde047" transform="rotate(-15 256 230)"/>
-  <!-- Brillo del limón -->
   <ellipse cx="232" cy="200" rx="32" ry="20" fill="#fef9c3" opacity="0.6" transform="rotate(-15 232 200)"/>
-  <!-- Punta izquierda del limón -->
   <ellipse cx="162" cy="248" rx="22" ry="14" fill="#fde047" transform="rotate(-15 162 248)"/>
-  <!-- Punta derecha del limón -->
   <ellipse cx="350" cy="212" rx="22" ry="14" fill="#fde047" transform="rotate(-15 350 212)"/>
-
-  <!-- Texto "Lemon" -->
-  <text x="256" y="372"
-    font-family="Georgia, serif"
-    font-size="72"
-    font-weight="300"
-    fill="white"
-    text-anchor="middle"
-    letter-spacing="6">Lemon</text>
-
-  <!-- Texto "Lab" en dorado -->
-  <text x="256" y="438"
-    font-family="Georgia, serif"
-    font-size="58"
-    font-weight="300"
-    font-style="italic"
-    fill="#C9A84C"
-    text-anchor="middle"
-    letter-spacing="4">Lab</text>
+  <text x="256" y="372" font-family="Georgia, serif" font-size="72" font-weight="300" fill="white" text-anchor="middle" letter-spacing="6">Lemon</text>
+  <text x="256" y="438" font-family="Georgia, serif" font-size="58" font-weight="300" font-style="italic" fill="#C9A84C" text-anchor="middle" letter-spacing="4">Lab</text>
 </svg>
