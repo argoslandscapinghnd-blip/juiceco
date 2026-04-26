@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Header, Divider } from "./ui/components";
 import { colors, cardStyle, btnPrimary, btnSecondary } from "./ui/styles";
 import { supabase } from "@/supabase";
+import { enviarEmailReporte, htmlCierreCaja } from "@/lib/sendEmail";
 
 interface Props {
   sesionCajaId:  number;
@@ -23,17 +24,19 @@ const TODOS = PARES.flat();
 const fmt   = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
 
 export default function CierreCajaScreen({
-  sesionCajaId, fondoInicial, cajeroNombre, cerradoPor, onCerrado, onBack,
+  sesionCajaId, sucursalId, fondoInicial, cajeroNombre, cerradoPor, onCerrado, onBack,
 }: Props) {
-  const [cantidades,    setCantidades]    = useState<Record<number, string>>({});
-  const [totalEfectivo, setTotalEfectivo] = useState(0);
-  const [totalTarjeta,  setTotalTarjeta]  = useState(0);
-  const [totalTransf,   setTotalTransf]   = useState(0);
-  const [numVentas,     setNumVentas]     = useState(0);
-  const [cargando,      setCargando]      = useState(true);
-  const [confirmando,   setConfirmando]   = useState(false);
-  const [cerrando,      setCerrando]      = useState(false);
-  const [observacion,   setObservacion]   = useState("");
+  const [cantidades,     setCantidades]     = useState<Record<number, string>>({});
+  const [totalEfectivo,  setTotalEfectivo]  = useState(0);
+  const [totalTarjeta,   setTotalTarjeta]   = useState(0);
+  const [totalTransf,    setTotalTransf]    = useState(0);
+  const [numVentas,      setNumVentas]      = useState(0);
+  const [sucursalNombre, setSucursalNombre] = useState("");
+  const [cargando,       setCargando]       = useState(true);
+  const [confirmando,    setConfirmando]    = useState(false);
+  const [cerrando,       setCerrando]       = useState(false);
+  const [error,          setError]          = useState("");
+  const [observacion,    setObservacion]    = useState("");
 
   const esCierreDeOtro = cerradoPor && cerradoPor !== cajeroNombre;
 
@@ -41,6 +44,9 @@ export default function CierreCajaScreen({
 
   const cargarVentas = async () => {
     setCargando(true);
+    setError("");
+    const { data: suc } = await supabase.from("sucursales").select("codigo, nombre").eq("id", sucursalId).single();
+    if (suc) setSucursalNombre(`${suc.codigo} - ${suc.nombre}`);
     const { data } = await supabase.from("ventas").select("total, metodo_pago").eq("sesion_id", sesionCajaId);
     const v = data ?? [];
     setNumVentas(v.length);
@@ -56,13 +62,14 @@ export default function CierreCajaScreen({
 
   const handleCerrar = async () => {
     setCerrando(true);
+    setError("");
     const detalleBilletes = TODOS.reduce((acc, d) => {
       const cant = parseFloat(cantidades[d] || "0") || 0;
       if (cant > 0) acc[`L${d}`] = cant;
       return acc;
     }, {} as Record<string, number>);
 
-    await supabase.from("sesiones_caja").update({
+    const { error: errUpdate } = await supabase.from("sesiones_caja").update({
       activa:         false,
       cerrada_en:     new Date().toISOString(),
       fondo_final:    totalContado,
@@ -71,6 +78,25 @@ export default function CierreCajaScreen({
       denominaciones: JSON.stringify(detalleBilletes),
       cerrado_por:    cerradoPor ?? cajeroNombre,
     }).eq("id", sesionCajaId);
+
+    if (errUpdate) {
+      setError("Error al cerrar caja: " + errUpdate.message);
+      setCerrando(false);
+      return;
+    }
+
+    const fecha = new Date().toLocaleString("es-HN", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    });
+    enviarEmailReporte(
+      `Cierre de Caja — ${cajeroNombre} — ${fecha}`,
+      htmlCierreCaja({
+        cajero: cajeroNombre, sucursal: sucursalNombre, fecha,
+        numVentas, totalEfectivo, totalTarjeta, totalTransf,
+        fondoInicial, totalContado, diferencia, observacion: observacion || undefined,
+      })
+    ).catch(() => {});
 
     setCerrando(false);
     onCerrado();
@@ -122,6 +148,12 @@ export default function CierreCajaScreen({
   return (
     <section>
       <Header titulo="Cierre de Caja" onBack={onBack} />
+
+      {error && (
+        <div style={{ background: "#fdecea", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#c62828" }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       {/* Aviso si admin cierra caja de otro */}
       {esCierreDeOtro && (

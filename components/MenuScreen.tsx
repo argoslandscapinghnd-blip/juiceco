@@ -27,10 +27,15 @@ export default function MenuScreen({
 }: Props) {
   const [bebidas,  setBebidas]  = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [error,    setError]    = useState("");
 
   useEffect(() => {
     supabase.from("productos").select("*").eq("activo", true).order("nombre")
-      .then(({ data }) => { setBebidas((data as Producto[]) ?? []); setCargando(false); });
+      .then(({ data, error: err }) => {
+        if (err) setError("Error cargando bebidas: " + err.message);
+        else setBebidas((data as Producto[]) ?? []);
+        setCargando(false);
+      });
   }, []);
 
   const unidades = carrito.reduce((s, i) => s + i.cantidad, 0);
@@ -67,6 +72,12 @@ export default function MenuScreen({
         >
           ← Volver al panel Admin
         </button>
+      )}
+
+      {error && (
+        <div style={{ background: "#fdecea", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#c62828" }}>
+          ⚠️ {error}
+        </div>
       )}
 
       {cargando ? (

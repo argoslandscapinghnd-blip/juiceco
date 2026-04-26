@@ -31,10 +31,13 @@ export default function PuntoVentaScreen({
 }: Props) {
   const [sucursales, setSucursales] = useState<SucursalConEstado[]>([]);
   const [cargando,   setCargando]   = useState(true);
+  const [error,      setError]      = useState("");
 
   const cargar = async () => {
     setCargando(true);
-    const { data: suc } = await supabase.from("sucursales").select("*").eq("activo", true).order("codigo");
+    setError("");
+    const { data: suc, error: errSuc } = await supabase.from("sucursales").select("*").eq("activo", true).order("codigo");
+    if (errSuc) { setError("Error cargando sucursales: " + errSuc.message); setCargando(false); return; }
     const { data: sesiones } = await supabase.from("sesiones_caja")
       .select("id, sucursal_id, usuario_nombre, usuario_id, fondo_inicial")
       .eq("activa", true);
@@ -62,6 +65,12 @@ export default function PuntoVentaScreen({
   return (
     <section>
       <Header titulo="Seleccione punto de venta" onBack={onBack} />
+
+      {error && (
+        <div style={{ background: "#fdecea", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#c62828" }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       {esAdmin && (
         <div style={{ background: "#e3f2fd", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#1565c0" }}>

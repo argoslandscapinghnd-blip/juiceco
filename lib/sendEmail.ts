@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────
-//  JUICE CO. — Helper para enviar emails
+//  Lemon Lab — Helper para enviar emails
 // ─────────────────────────────────────────────
 import { supabase } from "@/supabase";
 
@@ -42,7 +42,7 @@ export function htmlCierreCaja({
   return `
     <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:20px">
       <div style="background:#14532d;color:white;padding:16px 20px;border-radius:12px 12px 0 0;text-align:center">
-        <h2 style="margin:0;font-size:20px">🍋 JUICE CO.</h2>
+        <h2 style="margin:0;font-size:20px">🍋 Lemon Lab</h2>
         <p style="margin:4px 0 0;font-size:13px;opacity:0.8">Cierre de Caja</p>
       </div>
       <div style="background:#f9fafb;border:1px solid #e5e7eb;padding:20px;border-radius:0 0 12px 12px">
@@ -65,7 +65,7 @@ export function htmlCierreCaja({
           </tr>
         </table>
         ${observacion ? `<div style="background:#fff3cd;border-radius:8px;padding:10px;margin-top:12px;font-size:13px"><strong>Observación:</strong> ${observacion}</div>` : ""}
-        <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:16px">juiceco.vercel.app</p>
+        <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:16px">Lemon Lab · Sistema de punto de venta</p>
       </div>
     </div>
   `;

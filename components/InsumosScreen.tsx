@@ -1,11 +1,10 @@
 "use client";
-// ─────────────────────────────────────────────
-//  JUICE CO. — Lista de Insumos/Empaque (Admin)
-// ─────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { Header } from "./ui/components";
 import { colors, btnPrimary, cardStyle } from "./ui/styles";
 import { supabase } from "@/supabase";
+
+const PAGE_SIZE = 20;
 
 interface Insumo {
   id:                    number;
@@ -27,59 +26,64 @@ const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 
 
 const tiempoDesde = (fecha?: string): string => {
   if (!fecha) return "Sin registro";
-  const diff = Date.now() - new Date(fecha).getTime();
+  const diff  = Date.now() - new Date(fecha).getTime();
   const mins  = Math.floor(diff / 60000);
   const hrs   = Math.floor(mins / 60);
   const dias  = Math.floor(hrs / 24);
   const meses = Math.floor(dias / 30);
-  if (meses >= 1)  return `Hace ${meses} mes${meses > 1 ? "es" : ""}`;
-  if (dias >= 1)   return `Hace ${dias} día${dias > 1 ? "s" : ""}`;
-  if (hrs >= 1)    return `Hace ${hrs} hora${hrs > 1 ? "s" : ""}`;
-  if (mins >= 1)   return `Hace ${mins} min`;
+  if (meses >= 1) return `Hace ${meses} mes${meses > 1 ? "es" : ""}`;
+  if (dias  >= 1) return `Hace ${dias} día${dias > 1 ? "s" : ""}`;
+  if (hrs   >= 1) return `Hace ${hrs} hora${hrs > 1 ? "s" : ""}`;
+  if (mins  >= 1) return `Hace ${mins} min`;
   return "Hace un momento";
 };
 
 export default function InsumosScreen({ onNuevo, onEditar, onBack }: Props) {
   const [insumos,          setInsumos]          = useState<Insumo[]>([]);
   const [cargando,         setCargando]         = useState(true);
+  const [error,            setError]            = useState("");
   const [filtro,           setFiltro]           = useState<"todos" | "ingrediente" | "empaque">("todos");
   const [verInhabilitados, setVerInhabilitados] = useState(false);
+  const [pagina,           setPagina]           = useState(0);
 
-  useEffect(() => { cargar(); }, [verInhabilitados]);
+  useEffect(() => { setPagina(0); cargar(); }, [verInhabilitados]);
 
   const cargar = async () => {
     setCargando(true);
-    const { data } = await supabase
+    setError("");
+    const { data, error: err } = await supabase
       .from("insumos_maestro")
       .select("*")
       .eq("activo", !verInhabilitados)
       .order("tipo").order("nombre");
+    if (err) { setError("Error cargando insumos: " + err.message); setCargando(false); return; }
     setInsumos((data as Insumo[]) ?? []);
     setCargando(false);
   };
 
   const toggleActivo = async (i: Insumo) => {
-    await supabase.from("insumos_maestro").update({ activo: !i.activo }).eq("id", i.id);
+    setError("");
+    const { error: err } = await supabase.from("insumos_maestro").update({ activo: !i.activo }).eq("id", i.id);
+    if (err) { setError("Error actualizando insumo: " + err.message); return; }
     cargar();
   };
 
-  const filtrados = insumos.filter(i => filtro === "todos" || i.tipo === filtro);
+  const filtrados    = insumos.filter(i => filtro === "todos" || i.tipo === filtro);
+  const totalPaginas = Math.ceil(filtrados.length / PAGE_SIZE);
+  const paginados    = filtrados.slice(pagina * PAGE_SIZE, (pagina + 1) * PAGE_SIZE);
 
   return (
     <section>
       <Header titulo="Insumos y Empaque" onBack={onBack} />
 
-      {/* Tabs activos/inhabilitados */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <button onClick={() => setVerInhabilitados(false)} style={{
           flex: 1, padding: "10px", borderRadius: 10, border: "none", fontWeight: "bold", cursor: "pointer",
-          background: !verInhabilitados ? colors.primary : "#eee",
-          color: !verInhabilitados ? "white" : "#555",
+          background: !verInhabilitados ? colors.primary : "#eee", color: !verInhabilitados ? "white" : "#555",
         }}>Activos</button>
         <button onClick={() => setVerInhabilitados(true)} style={{
           flex: 1, padding: "10px", borderRadius: 10, border: "none", fontWeight: "bold", cursor: "pointer",
-          background: verInhabilitados ? colors.danger : "#eee",
-          color: verInhabilitados ? "white" : "#555",
+          background: verInhabilitados ? colors.danger : "#eee", color: verInhabilitados ? "white" : "#555",
         }}>Inhabilitados</button>
       </div>
 
@@ -89,10 +93,9 @@ export default function InsumosScreen({ onNuevo, onEditar, onBack }: Props) {
         </button>
       )}
 
-      {/* Filtro tipo */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         {(["todos", "ingrediente", "empaque"] as const).map((f) => (
-          <button key={f} onClick={() => setFiltro(f)} style={{
+          <button key={f} onClick={() => { setFiltro(f); setPagina(0); }} style={{
             padding: "6px 14px", borderRadius: 20, border: "none", cursor: "pointer",
             fontWeight: "bold", fontSize: 12,
             background: filtro === f ? colors.primary : "#e8e8e8",
@@ -103,6 +106,12 @@ export default function InsumosScreen({ onNuevo, onEditar, onBack }: Props) {
         ))}
       </div>
 
+      {error && (
+        <div style={{ background: "#fdecea", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: colors.danger }}>
+          ⚠️ {error}
+        </div>
+      )}
+
       {cargando ? (
         <div style={{ textAlign: "center", color: colors.textMuted, padding: 40 }}>Cargando...</div>
       ) : filtrados.length === 0 ? (
@@ -111,45 +120,52 @@ export default function InsumosScreen({ onNuevo, onEditar, onBack }: Props) {
           <p>{verInhabilitados ? "No hay insumos inhabilitados." : "No hay insumos registrados."}</p>
         </div>
       ) : (
-        filtrados.map((ins) => (
-          <div key={ins.id} style={{ ...cardStyle, marginBottom: 10 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 20 }}>{ins.tipo === "ingrediente" ? "🧪" : "📦"}</span>
-                  <span style={{ fontWeight: "bold", fontSize: 15, color: colors.textPrimary }}>{ins.nombre}</span>
+        <>
+          {paginados.map((ins) => (
+            <div key={ins.id} style={{ ...cardStyle, marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 20 }}>{ins.tipo === "ingrediente" ? "🧪" : "📦"}</span>
+                    <span style={{ fontWeight: "bold", fontSize: 15, color: colors.textPrimary }}>{ins.nombre}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: colors.textMuted, marginBottom: 2 }}>
+                    Unidad: <strong>{ins.unidad}</strong> · Costo: <strong style={{ color: colors.primary }}>L {fmt(ins.costo_unitario)}</strong>
+                  </div>
+                  <div style={{ fontSize: 11, color: colors.textMuted, marginBottom: 6, fontStyle: "italic" }}>
+                    🕐 Costo actualizado: {tiempoDesde(ins.costo_actualizado_en)}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 11, fontWeight: "bold", padding: "3px 10px", borderRadius: 20, background: ins.tipo === "ingrediente" ? "#e3f2fd" : "#fff3e0", color: ins.tipo === "ingrediente" ? "#1565c0" : "#e65100" }}>
+                      {ins.tipo === "ingrediente" ? "Ingrediente" : "Empaque"}
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: "bold", padding: "3px 10px", borderRadius: 20, background: ins.activo ? colors.primaryLight : "#fdecea", color: ins.activo ? colors.primary : colors.danger }}>
+                      {ins.activo ? "Activo" : "Inactivo"}
+                    </span>
+                  </div>
                 </div>
-
-                <div style={{ fontSize: 13, color: colors.textMuted, marginBottom: 2 }}>
-                  Unidad: <strong>{ins.unidad}</strong> · Costo: <strong style={{ color: colors.primary }}>L {fmt(ins.costo_unitario)}</strong>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginLeft: 12 }}>
+                  {!verInhabilitados && (
+                    <button onClick={() => onEditar(ins)} style={accionBtn("#e8f5e9", colors.primary)}>✏️ Editar</button>
+                  )}
+                  <button onClick={() => toggleActivo(ins)} style={accionBtn(verInhabilitados ? "#e8f5e9" : "#fdecea", verInhabilitados ? colors.primary : colors.danger)}>
+                    {verInhabilitados ? "✔ Activar" : "🚫 Inhabilitar"}
+                  </button>
                 </div>
-
-                {/* Última actualización de costo */}
-                <div style={{ fontSize: 11, color: colors.textMuted, marginBottom: 6, fontStyle: "italic" }}>
-                  🕐 Costo actualizado: {tiempoDesde(ins.costo_actualizado_en)}
-                </div>
-
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 11, fontWeight: "bold", padding: "3px 10px", borderRadius: 20, background: ins.tipo === "ingrediente" ? "#e3f2fd" : "#fff3e0", color: ins.tipo === "ingrediente" ? "#1565c0" : "#e65100" }}>
-                    {ins.tipo === "ingrediente" ? "Ingrediente" : "Empaque"}
-                  </span>
-                  <span style={{ fontSize: 11, fontWeight: "bold", padding: "3px 10px", borderRadius: 20, background: ins.activo ? colors.primaryLight : "#fdecea", color: ins.activo ? colors.primary : colors.danger }}>
-                    {ins.activo ? "Activo" : "Inactivo"}
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginLeft: 12 }}>
-                {!verInhabilitados && (
-                  <button onClick={() => onEditar(ins)} style={accionBtn("#e8f5e9", colors.primary)}>✏️ Editar</button>
-                )}
-                <button onClick={() => toggleActivo(ins)} style={accionBtn(verInhabilitados ? "#e8f5e9" : "#fdecea", verInhabilitados ? colors.primary : colors.danger)}>
-                  {verInhabilitados ? "✔ Activar" : "🚫 Inhabilitar"}
-                </button>
               </div>
             </div>
-          </div>
-        ))
+          ))}
+
+          {totalPaginas > 1 && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", fontSize: 13, color: colors.textMuted }}>
+              <button onClick={() => setPagina(p => Math.max(0, p - 1))} disabled={pagina === 0}
+                style={{ ...paginaBtn, opacity: pagina === 0 ? 0.4 : 1 }}>← Anterior</button>
+              <span>{pagina + 1} / {totalPaginas}</span>
+              <button onClick={() => setPagina(p => Math.min(totalPaginas - 1, p + 1))} disabled={pagina >= totalPaginas - 1}
+                style={{ ...paginaBtn, opacity: pagina >= totalPaginas - 1 ? 0.4 : 1 }}>Siguiente →</button>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
@@ -159,3 +175,7 @@ const accionBtn = (bg: string, color: string): React.CSSProperties => ({
   padding: "6px 12px", borderRadius: 8, border: "none", background: bg,
   color, fontWeight: "bold", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap",
 });
+
+const paginaBtn: React.CSSProperties = {
+  padding: "6px 14px", borderRadius: 8, border: "1px solid #ddd", background: "white", cursor: "pointer", fontWeight: "bold",
+};

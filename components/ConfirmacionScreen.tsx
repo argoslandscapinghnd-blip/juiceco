@@ -1,7 +1,4 @@
 "use client";
-// ─────────────────────────────────────────────
-//  JUICE CO. — Pantalla: Confirmación de Venta
-// ─────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { colors, btnPrimary, btnSecondary, cardStyle } from "./ui/styles";
 import { MetodoPago, ItemCarrito, DatosFactura } from "./ui/types";
@@ -19,7 +16,6 @@ interface Props {
   conFactura:     boolean;
   datosFactura?:  DatosFactura;
   onNuevaVenta:   () => void;
-  onImprimir:     () => void;
 }
 
 const METODO_LABEL: Record<MetodoPago, string> = {
@@ -36,6 +32,7 @@ export default function ConfirmacionScreen({
 }: Props) {
   const [guardado,       setGuardado]       = useState(false);
   const [ventaEnSesion,  setVentaEnSesion]  = useState<number | null>(null);
+  const [ventaId,        setVentaId]        = useState<number | null>(null);
   const [sucursalNombre, setSucursalNombre] = useState("");
   const [error,          setError]          = useState("");
 
@@ -54,22 +51,26 @@ export default function ConfirmacionScreen({
         .from("ventas")
         .insert({
           sesion_id: sesionCajaId, sucursal_id: sucursalId, usuario_id: usuarioId,
-         total, metodo_pago: metodo, con_factura: conFactura,
-         creada_en: new Date().toISOString(),
-          rtn: datosFactura?.rtn ?? null, nombre_fiscal: datosFactura?.nombre ?? null,
-          correo_fiscal: datosFactura?.correo ?? null,
+          total, metodo_pago: metodo, con_factura: conFactura,
+          creada_en: new Date().toISOString(),
+          rtn:             datosFactura?.rtn    ?? null,
+          nombre_fiscal:   datosFactura?.nombre ?? null,
+          correo_fiscal:   datosFactura?.correo ?? null,
         })
         .select().single();
 
       if (errVenta) throw errVenta;
 
-      await supabase.from("venta_items").insert(
+      const { error: errItems } = await supabase.from("venta_items").insert(
         carrito.map((item) => ({
           venta_id: venta.id, nombre_producto: item.nombre,
           cantidad: item.cantidad, precio_unitario: item.precio,
           subtotal: item.cantidad * item.precio,
         }))
       );
+      if (errItems) throw errItems;
+
+      setVentaId(venta.id);
 
       const { count } = await supabase
         .from("ventas").select("*", { count: "exact", head: true })
@@ -109,9 +110,7 @@ export default function ConfirmacionScreen({
       : "";
 
     const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
+      <!DOCTYPE html><html><head>
         <meta charset="UTF-8">
         <title>Ticket #${ventaEnSesion}</title>
         <style>
@@ -124,10 +123,9 @@ export default function ConfirmacionScreen({
           .total-row td { font-weight: bold; font-size: 14px; padding-top: 4px; }
           @media print { body { width: 80mm; } @page { size: 80mm auto; margin: 0; } }
         </style>
-      </head>
-      <body>
+      </head><body>
         <div class="center">
-          <div class="logo">🍋 JUICE CO.</div>
+          <div class="logo">🍋 Lemon Lab</div>
           <p style="font-size:11px;margin-top:2px">${sucursalNombre}</p>
           <p style="font-size:11px">Cajero: ${usuarioNombre}</p>
           <p style="font-size:11px">${fecha}</p>
@@ -159,22 +157,129 @@ export default function ConfirmacionScreen({
         </table>
         <hr class="divider">
         <p class="center" style="font-size:11px;margin-top:4px">¡Gracias por su compra!</p>
-        <p class="center" style="font-size:10px;color:#666">juiceco.vercel.app</p>
-      </body>
-      </html>
-    `;
+        <p class="center" style="font-size:10px;color:#666">Lemon Lab — Limonadas artesanales</p>
+      </body></html>`;
 
     const ventana = window.open("", "_blank", "width=400,height=600");
     if (ventana) {
       ventana.document.write(html);
       ventana.document.close();
       ventana.focus();
-      setTimeout(() => {
-        ventana.print();
-        ventana.close();
-        onNuevaVenta();
-      }, 500);
+      setTimeout(() => { ventana.print(); ventana.close(); }, 500);
     }
+  };
+
+  const descargarFacturaPDF = async () => {
+    const { default: jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+    const pageW  = 210;
+    const margin = 20;
+    const colR   = pageW - margin;
+    let y        = 20;
+
+    const fecha = new Date().toLocaleString("es-HN", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    });
+    const numFactura = `LL-${new Date().getFullYear()}-${String(ventaId ?? 0).padStart(6, "0")}`;
+
+    // Encabezado
+    doc.setFillColor(8, 122, 43);
+    doc.rect(0, 0, pageW, 28, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("Lemon Lab", margin, 13);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text("Limonadas artesanales", margin, 20);
+    doc.text(`No. ${numFactura}`, colR, 13, { align: "right" });
+    doc.text(fecha, colR, 20, { align: "right" });
+
+    y = 38;
+    doc.setTextColor(0, 0, 0);
+
+    // Datos de la sucursal / cajero
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Sucursal: ${sucursalNombre}`, margin, y);
+    doc.text(`Cajero: ${usuarioNombre}`, margin, y + 5);
+    y += 14;
+
+    // Datos del cliente (si con factura)
+    if (conFactura && datosFactura) {
+      doc.setFillColor(240, 247, 240);
+      doc.rect(margin, y, pageW - margin * 2, 22, "F");
+      doc.setTextColor(8, 122, 43);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("DATOS DEL CLIENTE", margin + 3, y + 6);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 0, 0);
+      doc.text(`RTN: ${datosFactura.rtn}`, margin + 3, y + 12);
+      doc.text(`Nombre: ${datosFactura.nombre}`, margin + 3, y + 17);
+      if (datosFactura.correo) doc.text(`Correo: ${datosFactura.correo}`, margin + 80, y + 12);
+      y += 28;
+    }
+
+    // Tabla de productos
+    doc.setFillColor(8, 122, 43);
+    doc.rect(margin, y, pageW - margin * 2, 8, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("Producto", margin + 3, y + 5.5);
+    doc.text("Cant.", margin + 95, y + 5.5, { align: "right" });
+    doc.text("Precio", margin + 120, y + 5.5, { align: "right" });
+    doc.text("Subtotal", colR, y + 5.5, { align: "right" });
+    y += 10;
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    carrito.forEach((item, idx) => {
+      if (idx % 2 === 0) {
+        doc.setFillColor(248, 248, 248);
+        doc.rect(margin, y - 2, pageW - margin * 2, 7, "F");
+      }
+      doc.setFontSize(9);
+      doc.text(item.nombre, margin + 3, y + 3);
+      doc.text(String(item.cantidad), margin + 95, y + 3, { align: "right" });
+      doc.text(`L ${fmt(item.precio)}`, margin + 120, y + 3, { align: "right" });
+      doc.text(`L ${fmt(item.cantidad * item.precio)}`, colR, y + 3, { align: "right" });
+      y += 7;
+    });
+
+    // Línea divisora
+    y += 3;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, y, colR, y);
+    y += 6;
+
+    // Total
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("TOTAL", margin + 3, y);
+    doc.text(`L ${fmt(total)}`, colR, y, { align: "right" });
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Método de pago: ${METODO_LABEL[metodo]}`, margin + 3, y);
+    if (cambio !== null) {
+      y += 5;
+      doc.setTextColor(8, 122, 43);
+      doc.text(`Cambio: L ${fmt(cambio)}`, margin + 3, y);
+    }
+
+    // Pie
+    y = 275;
+    doc.setTextColor(150, 150, 150);
+    doc.setFontSize(8);
+    doc.text("Lemon Lab · Limonadas artesanales", pageW / 2, y, { align: "center" });
+
+    doc.save(`factura-${numFactura}.pdf`);
   };
 
   return (
@@ -202,9 +307,14 @@ export default function ConfirmacionScreen({
           <FilaResumen label="Pago"  valor={METODO_LABEL[metodo]} />
           {cambio !== null && <FilaResumen label="Cambio" valor={`L ${fmt(cambio)}`} color={colors.primary} bold />}
         </div>
-        <button style={{ ...btnSecondary, marginBottom: 12, opacity: guardado ? 1 : 0.5 }} onClick={imprimirTicket} disabled={!guardado}>
+        <button style={{ ...btnSecondary, marginBottom: 10, opacity: guardado ? 1 : 0.5 }} onClick={imprimirTicket} disabled={!guardado}>
           🖨️ IMPRIMIR TICKET
         </button>
+        {conFactura && datosFactura && (
+          <button style={{ ...btnSecondary, marginBottom: 10, opacity: guardado ? 1 : 0.5 }} onClick={descargarFacturaPDF} disabled={!guardado}>
+            📄 DESCARGAR FACTURA PDF
+          </button>
+        )}
         <button style={btnPrimary} onClick={onNuevaVenta}>NUEVA VENTA</button>
       </div>
     </section>

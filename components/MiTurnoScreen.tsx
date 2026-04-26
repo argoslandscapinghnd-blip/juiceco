@@ -51,9 +51,10 @@ export default function MiTurnoScreen({
   onBack,
   onCerrarCaja,
 }: Props) {
-  const [resumen, setResumen] = useState<ResumenVentas | null>(null);
-  const [insumos, setInsumos] = useState<Insumo[]>([]);
+  const [resumen,  setResumen]  = useState<ResumenVentas | null>(null);
+  const [insumos,  setInsumos]  = useState<Insumo[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [error,    setError]    = useState("");
 
   useEffect(() => {
     cargarDatos();
@@ -61,12 +62,14 @@ export default function MiTurnoScreen({
 
   const cargarDatos = async () => {
     setCargando(true);
+    setError("");
 
-    const { data: ventas } = await supabase
+    const { data: ventas, error: errVentas } = await supabase
       .from("ventas")
       .select("id, total, metodo_pago")
       .eq("sesion_id", sesionCajaId);
 
+    if (errVentas) { setError("Error cargando ventas: " + errVentas.message); setCargando(false); return; }
     const v = ventas ?? [];
     const ventaIds = v.map((venta: any) => venta.id);
 
@@ -149,6 +152,12 @@ export default function MiTurnoScreen({
   return (
     <section>
       <Header titulo="Mi Turno" onBack={onBack} />
+
+      {error && (
+        <div style={{ background: "#fdecea", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#c62828" }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       <div style={{ ...cardStyle, background: colors.primaryLight, marginBottom: 16 }}>
         <div style={{ fontSize: 13, color: colors.primary }}>Cajero</div>

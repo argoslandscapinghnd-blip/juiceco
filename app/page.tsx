@@ -185,7 +185,7 @@ export default function Home() {
           <ConfirmacionScreen total={totalCarrito} metodo={metodoPago} montoRecibido={montoRecibido}
             carrito={carrito} sesionCajaId={sesionCajaId} sucursalId={sucursalId}
             usuarioId={usuarioActual?.id ?? ""} usuarioNombre={usuarioActual?.nombre ?? ""} conFactura={conFactura} datosFactura={datosFactura}
-            onNuevaVenta={nuevaVenta} onImprimir={() => alert("🖨️ Enviando a impresora...")}
+            onNuevaVenta={nuevaVenta}
           />
         )}
         {pantalla === "mi_turno" && (
