@@ -38,7 +38,6 @@ const KpiCard = ({ icon, label, value, sub }: { icon: string; label: string; val
   </div>
 );
 
-// ── Pie Chart SVG ──
 function PieChart({ data, total }: { data: VentaProducto[]; total: number }) {
   if (total === 0 || data.length === 0) return <EmptyRow />;
   let cumAngle = -Math.PI / 2;
@@ -94,6 +93,7 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
   const [metodos,    setMetodos]    = useState<VentaMetodo[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [enviando,   setEnviando]   = useState(false);
 
   const getRange = useCallback((): { from: string; to: string } => {
     if (tab === "hoy") return { from: todayStr, to: todayStr };
@@ -139,7 +139,6 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
       const utilidadEstimada = totalVentas * 0.36;
       setKpi({ totalVentas, numVentas, ticketPromedio, utilidadEstimada });
 
-      // Sucursales
       const sucAgg: Record<string, { total: number; num: number; usuarios: Set<string> }> = {};
       ventas.forEach((v) => {
         const sid = String(v.sucursal_id);
@@ -152,7 +151,6 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
         cajeros: [...d.usuarios].map(uid => usrMap[uid] || uid),
       })).sort((a, b) => b.total - a.total));
 
-      // Cajeros
       const usrAgg: Record<string, { total: number; num: number; sucursales: Set<string> }> = {};
       ventas.forEach((v) => {
         if (!v.usuario_id) return;
@@ -165,7 +163,6 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
         sucursales: [...d.sucursales].map(sid => sucMap[sid] || sid),
       })).sort((a, b) => b.total - a.total));
 
-      // Productos
       const ventaIds = ventas.map(v => v.id);
       const { data: items } = await supabase.from("venta_items")
         .select("nombre_producto, cantidad, subtotal").in("venta_id", ventaIds);
@@ -178,7 +175,6 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
       setProductos(Object.entries(prodAgg).map(([nombre_producto, d]) => ({ nombre_producto, ...d }))
         .sort((a, b) => b.cantidad - a.cantidad).slice(0, 8));
 
-      // Métodos
       const metAgg: Record<string, { total: number; num_ventas: number }> = {};
       ventas.forEach((v) => {
         const m = v.metodo_pago || "Otro";
@@ -196,6 +192,197 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { const i = setInterval(fetchData, 60_000); return () => clearInterval(i); }, [fetchData]);
 
+  // ── Generar y enviar PDF por email ──
+  const handleEnviarPDF = async () => {
+    if (!kpi) return;
+    setEnviando(true);
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const fecha = new Date().toLocaleDateString("es-HN", { day: "2-digit", month: "2-digit", year: "numeric" });
+      const hora  = new Date().toLocaleTimeString("es-HN", { hour: "2-digit", minute: "2-digit" });
+      const W = 210, margin = 16;
+      let y = 0;
+
+      // Header
+      doc.setFillColor(20, 83, 45);
+      doc.rect(0, 0, W, 28, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18); doc.setFont("helvetica", "bold");
+      doc.text("JUICE CO. — Dashboard", W / 2, 12, { align: "center" });
+      doc.setFontSize(10); doc.setFont("helvetica", "normal");
+      doc.text(`${fecha} · Generado a las ${hora}`, W / 2, 22, { align: "center" });
+      y = 36;
+
+      // KPIs
+      doc.setTextColor(17, 24, 39);
+      const kpiData = [
+        { label: "Total Ventas", value: fmt(kpi.totalVentas), sub: `${kpi.numVentas} transacciones` },
+        { label: "Ticket Prom.", value: fmt(kpi.ticketPromedio), sub: "" },
+        { label: "Unidades", value: String(productos.reduce((s, p) => s + p.cantidad, 0)), sub: "" },
+        { label: "Utilidad Est.", value: fmt(kpi.utilidadEstimada), sub: "~36% margen" },
+      ];
+      const kpiW = (W - margin * 2 - 9) / 4;
+      kpiData.forEach((k, i) => {
+        const x = margin + i * (kpiW + 3);
+        doc.setFillColor(240, 253, 244);
+        doc.roundedRect(x, y, kpiW, 22, 3, 3, "F");
+        doc.setFontSize(7); doc.setFont("helvetica", "bold");
+        doc.setTextColor(107, 114, 128);
+        doc.text(k.label.toUpperCase(), x + kpiW / 2, y + 6, { align: "center" });
+        doc.setFontSize(11); doc.setFont("helvetica", "bold");
+        doc.setTextColor(22, 163, 74);
+        doc.text(k.value, x + kpiW / 2, y + 14, { align: "center" });
+        if (k.sub) {
+          doc.setFontSize(7); doc.setFont("helvetica", "normal");
+          doc.setTextColor(156, 163, 175);
+          doc.text(k.sub, x + kpiW / 2, y + 19, { align: "center" });
+        }
+      });
+      y += 30;
+
+      const drawSection = (title: string) => {
+        doc.setFillColor(249, 250, 251);
+        doc.roundedRect(margin, y, W - margin * 2, 8, 2, 2, "F");
+        doc.setFontSize(10); doc.setFont("helvetica", "bold");
+        doc.setTextColor(17, 24, 39);
+        doc.text(title, margin + 4, y + 5.5);
+        y += 12;
+      };
+
+      const drawBar = (val: number, max: number, bx: number, by: number, bw: number, color: number[]) => {
+        doc.setFillColor(229, 231, 235);
+        doc.roundedRect(bx, by, bw, 3, 1, 1, "F");
+        const filled = max > 0 ? (val / max) * bw : 0;
+        if (filled > 0) {
+          doc.setFillColor(color[0], color[1], color[2]);
+          doc.roundedRect(bx, by, filled, 3, 1, 1, "F");
+        }
+      };
+
+      // Sucursales
+      if (sucursales.length > 0) {
+        drawSection("🏪  Por sucursal");
+        const maxS = sucursales[0].total;
+        sucursales.forEach(s => {
+          doc.setFontSize(9); doc.setFont("helvetica", "normal");
+          doc.setTextColor(55, 65, 81);
+          doc.text(s.nombre, margin, y + 3);
+          drawBar(s.total, maxS, margin + 70, y, 80, [22, 163, 74]);
+          doc.setFont("helvetica", "bold"); doc.setTextColor(22, 163, 74);
+          doc.text(fmt(s.total), W - margin, y + 3, { align: "right" });
+          doc.setFont("helvetica", "normal"); doc.setTextColor(156, 163, 175);
+          doc.setFontSize(7);
+          doc.text(`${s.num_ventas} ventas`, margin + 70, y + 8);
+          y += 12;
+        });
+        y += 4;
+      }
+
+      // Productos
+      if (productos.length > 0) {
+        drawSection("🥤  Top productos");
+        const maxP = productos[0].cantidad;
+        const medals = ["1°","2°","3°","4°","5°","6°","7°","8°"];
+        const colHex = ["#16a34a","#7c3aed","#ea580c","#0284c7","#dc2626","#ca8a04","#0891b2","#9333ea"];
+        productos.forEach((p, i) => {
+          const hex = colHex[i % colHex.length];
+          const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+          doc.setFontSize(9); doc.setFont("helvetica", "bold");
+          doc.setTextColor(107, 114, 128);
+          doc.text(medals[i], margin, y + 3);
+          doc.setFont("helvetica", "normal"); doc.setTextColor(55, 65, 81);
+          doc.text(p.nombre_producto, margin + 8, y + 3);
+          drawBar(p.cantidad, maxP, margin + 80, y, 70, [r, g, b]);
+          doc.setFont("helvetica", "bold"); doc.setTextColor(r, g, b);
+          doc.text(`${p.cantidad} uds`, W - margin - 22, y + 3);
+          doc.setTextColor(22, 163, 74);
+          doc.text(fmt(p.subtotal), W - margin, y + 3, { align: "right" });
+          y += 10;
+        });
+        y += 4;
+      }
+
+      // Cajeros
+      if (cajeros.length > 0) {
+        drawSection("👤  Por cajero");
+        doc.setFontSize(8); doc.setFont("helvetica", "bold");
+        doc.setTextColor(107, 114, 128);
+        doc.text("Cajero", margin, y);
+        doc.text("Ventas", margin + 80, y);
+        doc.text("Total", margin + 110, y);
+        doc.text("Promedio", W - margin, y, { align: "right" });
+        y += 6;
+        cajeros.forEach(c => {
+          doc.setFont("helvetica", "normal"); doc.setTextColor(55, 65, 81);
+          doc.text(c.nombre, margin, y);
+          doc.text(String(c.num_ventas), margin + 80, y);
+          doc.setTextColor(22, 163, 74); doc.setFont("helvetica", "bold");
+          doc.text(fmt(c.total), margin + 110, y);
+          doc.setTextColor(107, 114, 128); doc.setFont("helvetica", "normal");
+          doc.text(fmt(c.total / (c.num_ventas || 1)), W - margin, y, { align: "right" });
+          y += 8;
+        });
+        y += 4;
+      }
+
+      // Métodos
+      if (metodos.length > 0) {
+        drawSection("💳  Método de pago");
+        const maxM = metodos[0].total;
+        metodos.forEach(m => {
+          const pct = kpi.totalVentas > 0 ? ((m.total / kpi.totalVentas) * 100).toFixed(0) : "0";
+          doc.setFontSize(9); doc.setFont("helvetica", "normal");
+          doc.setTextColor(55, 65, 81);
+          const label = m.metodo_pago.charAt(0).toUpperCase() + m.metodo_pago.slice(1);
+          doc.text(label, margin, y + 3);
+          drawBar(m.total, maxM, margin + 50, y, 90, [22, 163, 74]);
+          doc.setFont("helvetica", "bold"); doc.setTextColor(22, 163, 74);
+          doc.text(fmt(m.total), W - margin - 12, y + 3);
+          doc.setTextColor(107, 114, 128); doc.setFont("helvetica", "normal");
+          doc.setFontSize(7);
+          doc.text(`${pct}% · ${m.num_ventas} ventas`, margin + 50, y + 8);
+          y += 12;
+        });
+      }
+
+      // Footer
+      doc.setFontSize(8); doc.setTextColor(156, 163, 175);
+      doc.text("juiceco.vercel.app · Reporte generado automáticamente", W / 2, 285, { align: "center" });
+
+      // Convertir a base64
+      const pdfBase64 = doc.output("datauristring").split(",")[1];
+
+      // Enviar email con PDF adjunto
+      const { data: destData } = await supabase.from("email_destinatarios").select("email").eq("activo", true);
+      const destinatarios = (destData ?? []).map((d: any) => d.email);
+
+      if (destinatarios.length === 0) {
+        alert("⚠️ No hay destinatarios activos. Agrega destinatarios en el módulo de Emails.");
+        setEnviando(false); return;
+      }
+
+      const res = await fetch("/api/email-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          destinatarios,
+          asunto: `📊 Dashboard Juice Co. — ${fecha} ${hora}`,
+          pdfBase64,
+          fileName: `dashboard-juiceco-${fecha.replace(/\//g, "-")}.pdf`,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok) alert(`✅ Dashboard enviado a ${destinatarios.length} destinatario(s)`);
+      else alert(`⚠️ Error: ${data.error || "No se pudo enviar"}`);
+    } catch (err: any) {
+      console.error(err);
+      alert("Error generando el PDF: " + err.message);
+    }
+    setEnviando(false);
+  };
+
   const maxSuc  = sucursales[0]?.total   || 1;
   const maxProd = productos[0]?.cantidad || 1;
   const maxMet  = metodos[0]?.total      || 1;
@@ -210,7 +397,6 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f0fdf4", fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 40 }}>
-      {/* Header */}
       <div style={{ background: "#14532d", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 52, position: "sticky", top: 0, zIndex: 100 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", padding: 4, lineHeight: 1 }}>←</button>
         <span style={{ color: "#fff", fontWeight: 700, fontSize: 16, letterSpacing: 0.3 }}>Dashboard</span>
@@ -218,8 +404,6 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
       </div>
 
       <div style={{ maxWidth: 540, margin: "0 auto", padding: "0 12px" }}>
-
-        {/* Tabs período */}
         <div style={{ display: "flex", background: "#fff", borderRadius: 12, padding: 4, margin: "14px 0 10px", border: "1px solid #e5e7eb" }}>
           {(["hoy", "semana", "mes"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: "7px 0", borderRadius: 9, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, background: tab === t ? "#16a34a" : "transparent", color: tab === t ? "#fff" : "#6b7280", transition: "all 0.2s" }}>
@@ -228,7 +412,6 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
           ))}
         </div>
 
-        {/* Filtros sucursal + cajero */}
         <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
           <select value={sucFiltro} onChange={e => setSucFiltro(e.target.value)} style={{ ...inputStyle, flex: 1, borderRadius: 10, padding: "8px 10px" }}>
             <option value="todas">📍 Todos los puntos</option>
@@ -240,7 +423,6 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
           </select>
         </div>
 
-        {/* Period selector */}
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 14 }}>📅</span>
@@ -258,6 +440,17 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
           {!loading && <span style={{ fontSize: 10, color: "#9ca3af" }}>↺ {lastUpdate.toLocaleTimeString("es-HN", { hour: "2-digit", minute: "2-digit" })}</span>}
         </div>
 
+        {/* Botón enviar PDF */}
+        {kpi && !loading && (
+          <button
+            onClick={handleEnviarPDF}
+            disabled={enviando}
+            style={{ width: "100%", marginBottom: 12, padding: "12px", borderRadius: 10, border: "none", background: enviando ? "#9ca3af" : "#0284c7", color: "white", fontWeight: 700, fontSize: 14, cursor: enviando ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+          >
+            {enviando ? "⏳ Generando PDF..." : "📧 ENVIAR DASHBOARD POR EMAIL (PDF)"}
+          </button>
+        )}
+
         {loading && <div style={{ textAlign: "center", padding: "30px 0", color: "#16a34a", fontWeight: 600 }}>Cargando...</div>}
 
         {!loading && kpi && (
@@ -271,7 +464,6 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
               <KpiCard icon="📊" label="Utilidad est." value={fmt(kpi.utilidadEstimada)} sub="~36% margen" />
             </div>
 
-            {/* Por sucursal */}
             <Section title="Por sucursal" icon="🏪">
               {sucursales.length === 0 && <EmptyRow />}
               {sucursales.map((s) => (
@@ -290,7 +482,6 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
               ))}
             </Section>
 
-            {/* Por cajero */}
             <Section title="Por cajero" icon="👤">
               {cajeros.length === 0 && <EmptyRow />}
               {cajeros.map((c) => (
@@ -307,7 +498,6 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
               ))}
             </Section>
 
-            {/* Por producto — con pie chart */}
             <Section title="Ventas por sabor (unidades)" icon="🥤">
               {productos.length === 0 ? <EmptyRow /> : (
                 <>
@@ -333,7 +523,6 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
               )}
             </Section>
 
-            {/* Método de pago */}
             <Section title="Método de pago" icon="💳">
               {metodos.length === 0 && <EmptyRow />}
               {metodos.map((m) => {
