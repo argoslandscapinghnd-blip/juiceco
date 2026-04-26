@@ -121,20 +121,20 @@ export default function FormSucursalScreen({ sucursalEditar, onGuardar, onBack }
     setCargando(true);
     setError("");
 
-    const { count, error: errUsuarios } = await supabase
-      .from("usuarios")
+    const { count, error: errSesiones } = await supabase
+      .from("sesiones_caja")
       .select("id", { count: "exact", head: true })
       .eq("sucursal_id", sucursalEditar.id)
-      .eq("activo", true);
+      .eq("activa", true);
 
-    if (errUsuarios) {
-      setError("Error al validar usuarios asignados: " + errUsuarios.message);
+    if (errSesiones) {
+      setError("Error al validar sesiones activas: " + errSesiones.message);
       setCargando(false);
       return;
     }
 
     if ((count ?? 0) > 0) {
-      setError("No se puede inhabilitar esta sucursal porque tiene usuarios activos asignados.");
+      setError("No se puede inhabilitar esta sucursal porque tiene una caja abierta.");
       setCargando(false);
       return;
     }

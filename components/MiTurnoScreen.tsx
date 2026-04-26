@@ -26,14 +26,6 @@ interface ResumenVentas {
   topProductoCantidad: number;
 }
 
-interface Insumo {
-  id: number;
-  nombre: string;
-  unidad: string;
-  stock_actual: number;
-  stock_minimo: number;
-}
-
 interface Props {
   sesionCajaId: number;
   sucursalId: number;
@@ -52,7 +44,6 @@ export default function MiTurnoScreen({
   onCerrarCaja,
 }: Props) {
   const [resumen,  setResumen]  = useState<ResumenVentas | null>(null);
-  const [insumos,  setInsumos]  = useState<Insumo[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error,    setError]    = useState("");
 
@@ -124,13 +115,6 @@ export default function MiTurnoScreen({
       topProductoCantidad: topProductoEntry?.[1] ?? 0,
     });
 
-    const { data: inv } = await supabase
-      .from("insumos")
-      .select("*")
-      .eq("sucursal_id", sucursalId)
-      .order("nombre");
-
-    setInsumos((inv ?? []) as Insumo[]);
     setCargando(false);
   };
 
