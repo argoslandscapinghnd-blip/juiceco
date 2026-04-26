@@ -201,6 +201,9 @@ export default function LoginScreen({ onIngresar }: Props) {
         <p style={{ textAlign: "center", fontSize: 12, color: colors.textMuted, marginTop: 16, marginBottom: 0 }}>
           © 2026 Lemon Lab. Todos los derechos reservados.
         </p>
+        <p style={{ textAlign: "center", fontSize: 10, color: colors.textMuted, marginTop: 4, marginBottom: 0 }}>
+          v0.2.0
+        </p>
       </div>
     </section>
   );
