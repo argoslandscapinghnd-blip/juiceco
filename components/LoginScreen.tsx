@@ -3,6 +3,7 @@
 //  Lemon Lab — Pantalla 1: Login (con Supabase)
 // ─────────────────────────────────────────────
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { colors, inputStyle, btnPrimary, cardStyle } from "./ui/styles";
 import { Usuario } from "./ui/types";
 import { supabase } from "@/supabase";
@@ -110,37 +111,14 @@ export default function LoginScreen({ onIngresar }: Props) {
   return (
     <section>
       <div style={{ textAlign: "center", marginBottom: 32, marginTop: 24 }}>
-        <div style={{ lineHeight: 1, marginBottom: 4 }}>
-          <span style={{
-            fontFamily: "'Cormorant Garamond', Georgia, serif",
-            fontWeight: 300,
-            fontSize: 38,
-            letterSpacing: "0.18em",
-            color: colors.primaryDark,
-            display: "block",
-            lineHeight: 1,
-          }}>Lemon</span>
-          <span style={{
-            fontFamily: "'Cormorant Garamond', Georgia, serif",
-            fontWeight: 300,
-            fontStyle: "italic",
-            fontSize: 38,
-            letterSpacing: "0.1em",
-            color: "#C9A84C",
-            display: "block",
-            lineHeight: 1,
-          }}>Lab</span>
-          <span style={{
-            fontFamily: "Georgia, serif",
-            fontSize: 8,
-            letterSpacing: "0.42em",
-            textTransform: "uppercase" as const,
-            color: colors.primaryDark,
-            opacity: 0.4,
-            display: "block",
-            marginTop: 6,
-          }}>Limonadas artesanales</span>
-        </div>
+        <Image
+          src="/Logo.png"
+          alt="Lemon Lab"
+          width={200}
+          height={80}
+          style={{ objectFit: "contain", margin: "0 auto" }}
+          priority
+        />
       </div>
 
       <div style={cardStyle}>
