@@ -14,9 +14,12 @@ export async function enviarEmailReporte(asunto: string, html: string) {
     const destinatarios = (data ?? []).map((d: any) => d.email);
     if (destinatarios.length === 0) return { ok: false, msg: "Sin destinatarios activos" };
 
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token ?? "";
+
     const res = await fetch("/api/email", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       body: JSON.stringify({ destinatarios, asunto, html }),
     });
 
