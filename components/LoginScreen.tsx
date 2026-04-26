@@ -98,11 +98,37 @@ export default function LoginScreen({ onIngresar }: Props) {
   return (
     <section>
       <div style={{ textAlign: "center", marginBottom: 32, marginTop: 24 }}>
-        <div style={{ fontSize: 52, marginBottom: 6 }}>🍋</div>
-        <h1 style={{ color: colors.primaryDark, margin: 0, fontSize: 30, letterSpacing: 3 }}>
-          JUICE CO.
-        </h1>
-      </div>
+       <div style={{ lineHeight: 1, marginBottom: 4 }}>
+  <span style={{
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+    fontWeight: 300,
+    fontSize: 38,
+    letterSpacing: "0.18em",
+    color: colors.primaryDark,
+    display: "block",
+    lineHeight: 1,
+  }}>Lemon</span>
+  <span style={{
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+    fontWeight: 300,
+    fontStyle: "italic",
+    fontSize: 38,
+    letterSpacing: "0.1em",
+    color: "#C9A84C",
+    display: "block",
+    lineHeight: 1,
+  }}>Lab</span>
+  <span style={{
+    fontFamily: "Georgia, serif",
+    fontSize: 8,
+    letterSpacing: "0.42em",
+    textTransform: "uppercase" as const,
+    color: colors.primaryDark,
+    opacity: 0.4,
+    display: "block",
+    marginTop: 6,
+  }}>Limonadas artesanales</span>
+</div>
 
       <div style={cardStyle}>
         <h2 style={{ marginTop: 0, marginBottom: 20, fontSize: 18 }}>Iniciar sesión</h2>
@@ -160,7 +186,7 @@ export default function LoginScreen({ onIngresar }: Props) {
         </button>
 
         <p style={{ textAlign: "center", fontSize: 12, color: colors.textMuted, marginTop: 16, marginBottom: 0 }}>
-          © 2026 Juice Co. Todos los derechos reservados.
+          © 2026 Lemon Lab. Todos los derechos reservados.
         </p>
       </div>
     </section>

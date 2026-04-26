@@ -56,20 +56,47 @@ export function Divider() {
   );
 }
 
-// ── Logo Juice Co. ──
+// ── Logo Lemon Lab ──
 export function Logo({ size = "normal" }: { size?: "small" | "normal" | "large" }) {
   const sizes = {
-    small:  { emoji: 20, text: 14 },
-    normal: { emoji: 24, text: 18 },
-    large:  { emoji: 48, text: 28 },
+    small:  { lemon: 16, lab: 16, tag: false },
+    normal: { lemon: 22, lab: 22, tag: false },
+    large:  { lemon: 34, lab: 34, tag: true  },
   };
   const s = sizes[size];
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ fontSize: s.emoji }}>🍋</span>
-      <span style={{ fontWeight: "bold", fontSize: s.text, color: colors.primaryDark, letterSpacing: 2 }}>
-        JUICE CO.
-      </span>
+    <div style={{ lineHeight: 1 }}>
+      <span style={{
+        fontFamily: "'Cormorant Garamond', Georgia, serif",
+        fontWeight: 300,
+        fontSize: s.lemon,
+        letterSpacing: "0.18em",
+        color: colors.primaryDark,
+        display: "block",
+        lineHeight: 1,
+      }}>Lemon</span>
+      <span style={{
+        fontFamily: "'Cormorant Garamond', Georgia, serif",
+        fontWeight: 300,
+        fontStyle: "italic",
+        fontSize: s.lab,
+        letterSpacing: "0.1em",
+        color: "#C9A84C",
+        display: "block",
+        lineHeight: 1,
+      }}>Lab</span>
+      {s.tag && (
+        <span style={{
+          fontFamily: "Georgia, serif",
+          fontSize: 7,
+          letterSpacing: "0.42em",
+          textTransform: "uppercase",
+          color: colors.primaryDark,
+          opacity: 0.35,
+          display: "block",
+          marginTop: 5,
+        }}>Limonadas artesanales</span>
+      )}
     </div>
   );
 }

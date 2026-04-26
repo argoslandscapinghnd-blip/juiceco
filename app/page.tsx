@@ -24,7 +24,7 @@ import BebidasScreen      from "@/components/BebidasScreen";
 import FormBebidaScreen   from "@/components/FormBebidaScreen";
 import UnidadesScreen     from "@/components/UnidadesScreen";
 import InsumosScreen      from "@/components/InsumosScreen";
-import FormInsumoScreen              from "@/components/FormInsumoScreen";
+import FormInsumoScreen   from "@/components/FormInsumoScreen";
 import DashboardScreen    from "@/components/DashboardScreen";
 
 export default function Home() {

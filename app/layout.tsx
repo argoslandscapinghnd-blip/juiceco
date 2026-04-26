@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Juice Co. POS",
-  description: "Sistema de punto de venta Juice Co.",
+  title: "Lemon Lab POS",
+  description: "Sistema de punto de venta Lemon Lab.",
 };
 
 const APP_VERSION = "v2.2.0";
@@ -26,9 +26,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         {children}
-        {/* Versión fija en esquina inferior derecha */}
         <div style={{
           position: "fixed",
           bottom: 8,
