@@ -124,7 +124,7 @@ export default function LoginScreen({ onIngresar }: Props) {
     objectFit: "contain", 
     margin: "0 auto", 
     display: "block",
-    width: "150%",      // ← esto controla el tamaño visual
+    width: "300%",      // ← esto controla el tamaño visual
     height: "auto"     // ← esto mantiene la proporción
   }}
   priority
