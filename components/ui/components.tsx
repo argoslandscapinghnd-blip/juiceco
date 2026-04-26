@@ -60,9 +60,9 @@ export function Divider() {
 // ── Logo Lemon Lab ──
 export function Logo({ size = "normal" }: { size?: "small" | "normal" | "large" }) {
   const dims = {
-    small:  { width: 80,  height: 32 },
-    normal: { width: 120, height: 48 },
-    large:  { width: 180, height: 72 },
+    small:  { width: 90,  height: 60  },
+    normal: { width: 150, height: 100 },
+    large:  { width: 210, height: 140 },
   };
   const { width, height } = dims[size];
   return (
