@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Logo } from "./ui/components";
 import { colors, cardStyle, btnPrimary } from "./ui/styles";
 import { supabase } from "@/supabase";
+import { inicioDiaHN } from "@/lib/utils";
 
 interface Props {
   usuario:        string;
@@ -40,10 +41,8 @@ export default function AdminMenuScreen({
   useEffect(() => { cargarMetricas(); }, []);
 
   const cargarMetricas = async () => {
-    const hoy = new Date().toISOString().split("T")[0];
-
     const [{ data: ventas }, { count: turnos }, { count: sucursales }] = await Promise.all([
-      supabase.from("ventas").select("total").gte("creada_en", `${hoy}T00:00:00`),
+      supabase.from("ventas").select("total").gte("creada_en", inicioDiaHN()),
       supabase.from("sesiones_caja").select("id", { count: "exact", head: true }).eq("activa", true),
       supabase.from("sucursales").select("id", { count: "exact", head: true }).eq("activo", true),
     ]);

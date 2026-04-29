@@ -8,6 +8,7 @@ import { Header, Divider } from "./ui/components";
 import { colors, cardStyle, btnPrimary, btnSecondary } from "./ui/styles";
 import { supabase } from "@/supabase";
 import { enviarEmailReporte, htmlCierreCaja } from "@/lib/sendEmail";
+import { ahoraHN } from "@/lib/utils";
 
 interface Props {
   sesionCajaId:  number;
@@ -85,10 +86,7 @@ export default function CierreCajaScreen({
       return;
     }
 
-    const fecha = new Date().toLocaleString("es-HN", {
-      day: "2-digit", month: "2-digit", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
-    });
+    const fecha = ahoraHN();
     enviarEmailReporte(
       `Cierre de Caja — ${cajeroNombre} — ${fecha}`,
       htmlCierreCaja({

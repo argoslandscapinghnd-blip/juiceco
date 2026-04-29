@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/supabase";
+import { hoyHN, inicioDiaHN, finDiaHN } from "@/lib/utils";
 
 interface KPI { totalVentas: number; numVentas: number; ticketPromedio: number; utilidadEstimada: number; }
 interface VentaSucursal { sucursal_id: string; nombre: string; total: number; num_ventas: number; cajeros: string[]; }
@@ -75,7 +76,7 @@ const inputStyle: React.CSSProperties = { fontSize: 12, border: "1px solid #d1d5
 
 export default function DashboardScreen({ onBack }: { onBack: () => void }) {
   const today    = new Date();
-  const todayStr = toDateStr(today);
+  const todayStr = hoyHN();
 
   const [tab,         setTab]         = useState<"hoy" | "semana" | "mes">("hoy");
   const [weekFrom,    setWeekFrom]    = useState(toDateStr(startOfWeek(today)));
@@ -96,9 +97,7 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
 
   const getRange = useCallback((): { from: string; to: string } => {
     if (tab === "hoy") {
-      const inicio = new Date(); inicio.setHours(0, 0, 0, 0);
-      const fin    = new Date(); fin.setHours(23, 59, 59, 999);
-      return { from: inicio.toISOString(), to: fin.toISOString() };
+      return { from: inicioDiaHN(), to: finDiaHN() };
     }
     if (tab === "semana") return { from: weekFrom, to: weekTo };
     const [y, m] = monthValue.split("-").map(Number);
@@ -109,8 +108,8 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
     setLoading(true);
     try {
       const { from, to } = getRange();
-      const fromTs = from.includes("T") ? from : `${from}T00:00:00`;
-      const toTs   = to.includes("T")   ? to   : `${to}T23:59:59`;
+      const fromTs = from.includes("T") ? from : inicioDiaHN(from);
+      const toTs   = to.includes("T")   ? to   : finDiaHN(to);
 
       const { data: sucData } = await supabase.from("sucursales").select("id, nombre, codigo");
       const { data: usrData } = await supabase.from("usuarios").select("id, nombre");

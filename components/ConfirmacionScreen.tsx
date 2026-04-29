@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { colors, btnPrimary, btnSecondary, cardStyle } from "./ui/styles";
 import { MetodoPago, ItemCarrito, DatosFactura } from "./ui/types";
 import { supabase } from "@/supabase";
-import { esc, fmt } from "@/lib/utils";
+import { esc, fmt, ahoraHN } from "@/lib/utils";
 
 interface Props {
   total:          number;
@@ -84,10 +84,7 @@ export default function ConfirmacionScreen({
   };
 
   const imprimirTicket = () => {
-    const fecha = new Date().toLocaleString("es-HN", {
-      day: "2-digit", month: "2-digit", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
-    });
+    const fecha = ahoraHN();
 
     const itemsHTML = carrito.map(i =>
       `<tr>
@@ -177,10 +174,7 @@ export default function ConfirmacionScreen({
     const colR   = pageW - margin;
     let y        = 20;
 
-    const fecha = new Date().toLocaleString("es-HN", {
-      day: "2-digit", month: "2-digit", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
-    });
+    const fecha = ahoraHN();
     const numFactura = `LL-${new Date().getFullYear()}-${String(ventaId ?? 0).padStart(6, "0")}`;
 
     // Encabezado

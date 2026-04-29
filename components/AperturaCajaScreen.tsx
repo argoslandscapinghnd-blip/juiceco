@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Header, Row } from "./ui/components";
 import { colors, inputStyle, btnPrimary, cardStyle } from "./ui/styles";
 import { supabase } from "@/supabase";
+import { ahoraHN } from "@/lib/utils";
 
 interface Props {
   sucursalId: number;
@@ -23,11 +24,7 @@ export default function AperturaCajaScreen({
   const [error,    setError]    = useState("");
   const [cargando, setCargando] = useState(false);
 
-  const fecha = new Date().toLocaleDateString("es-HN", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-  }) + "  " + new Date().toLocaleTimeString("es-HN", {
-    hour: "2-digit", minute: "2-digit",
-  });
+  const fecha = ahoraHN();
 
   // Formatea el número con comas para mostrar en el input
   const formatearInput = (raw: string): string => {
