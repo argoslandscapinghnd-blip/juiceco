@@ -74,6 +74,13 @@ export default function MenuScreen({
         </button>
       )}
 
+      {unidades > 0 && (
+        <button style={{ ...btnAccent, marginBottom: 12 }} onClick={onVerCarrito}>
+          <span>🛒 VER CARRITO ({unidades})</span>
+          <span>L {total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+        </button>
+      )}
+
       {error && (
         <div style={{ background: "#fdecea", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#c62828" }}>
           ⚠️ {error}
@@ -120,12 +127,6 @@ export default function MenuScreen({
         </div>
       )}
 
-      {unidades > 0 && (
-        <button style={btnAccent} onClick={onVerCarrito}>
-          <span>🛒 VER CARRITO ({unidades})</span>
-          <span>L {total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-        </button>
-      )}
     </section>
   );
 }

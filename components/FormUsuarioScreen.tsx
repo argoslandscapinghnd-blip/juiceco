@@ -79,6 +79,9 @@ export default function FormUsuarioScreen({ usuarioEditar, onGuardar, onBack }: 
     setCargando(true);
     setError("");
 
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
     if (editando) {
       const updates: Record<string, string> = {
         nombre: nombreFinal,
@@ -87,7 +90,23 @@ export default function FormUsuarioScreen({ usuarioEditar, onGuardar, onBack }: 
         rol,
       };
 
-      if (password) updates.password = password;
+      if (password) {
+        updates.password = password;
+
+        if (usuarioEditar.auth_id && token) {
+          const res = await fetch("/api/usuarios", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ auth_id: usuarioEditar.auth_id, password }),
+          });
+          if (!res.ok) {
+            const json = await res.json();
+            setError(json.error || "Error al actualizar contraseña.");
+            setCargando(false);
+            return;
+          }
+        }
+      }
 
       const { error: err } = await supabase
         .from("usuarios")
@@ -100,23 +119,26 @@ export default function FormUsuarioScreen({ usuarioEditar, onGuardar, onBack }: 
         return;
       }
     } else {
-      const { error: err } = await supabase
-        .from("usuarios")
-        .insert({
+      if (!token) {
+        setError("No autorizado. Vuelve a iniciar sesión.");
+        setCargando(false);
+        return;
+      }
+
+      const res = await fetch("/api/usuarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
           nombre: nombreFinal,
           usuario: usuarioFinal,
           password,
           telefono: telefonoFinal,
           rol,
-          activo: true,
-        });
-
-      if (err) {
-        setError(
-          err.message.includes("unique")
-            ? "Ese nombre de usuario ya existe."
-            : "Error al crear: " + err.message
-        );
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error || "Error al crear usuario.");
         setCargando(false);
         return;
       }
