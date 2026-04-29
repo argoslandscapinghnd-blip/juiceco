@@ -289,7 +289,7 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
               <KpiCard icon="🧾" label="Ticket prom." value={fmt(kpi.ticketPromedio)} />
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-              <KpiCard icon="📦" label="Unidades"      value={totalUnidades.toString()} />
+              <KpiCard icon="🥤" label="Unidades"      value={totalUnidades.toString()} />
               <KpiCard icon="📊" label="Utilidad real" value={fmt(kpi.utilidadReal)} sub={`${kpi.margenReal.toFixed(1)}% margen`} />
             </div>
 
