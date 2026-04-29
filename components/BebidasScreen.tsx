@@ -20,6 +20,8 @@ export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
   const [error,            setError]            = useState("");
   const [verInhabilitadas, setVerInhabilitadas] = useState(false);
   const [pagina,           setPagina]           = useState(0);
+  const [recalculando,     setRecalculando]     = useState(false);
+  const [msgRecalculo,     setMsgRecalculo]     = useState("");
 
   useEffect(() => { setPagina(0); cargar(); }, [verInhabilitadas]);
 
@@ -44,6 +46,51 @@ export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
     });
     setCostos(mapaCostos);
     setCargando(false);
+  };
+
+  const recalcularCostos = async () => {
+    setRecalculando(true);
+    setMsgRecalculo("");
+    setError("");
+
+    const { data: insumos, error: errIns } = await supabase
+      .from("insumos_maestro")
+      .select("id, costo_unitario");
+
+    const { data: recetas, error: errRec } = await supabase
+      .from("recetas")
+      .select("producto_id, insumo_id, cantidad");
+
+    if (errIns || errRec || !insumos || !recetas) {
+      setError("Error al obtener datos para recalcular.");
+      setRecalculando(false);
+      return;
+    }
+
+    const costoMap: Record<number, number> = {};
+    insumos.forEach((i) => { costoMap[i.id] = Number(i.costo_unitario); });
+
+    let errCount = 0;
+    for (const r of recetas) {
+      const costo_total = Number(r.cantidad) * (costoMap[r.insumo_id] || 0);
+      const { error } = await supabase
+        .from("recetas")
+        .update({ costo_total })
+        .eq("producto_id", r.producto_id)
+        .eq("insumo_id", r.insumo_id);
+      if (error) errCount++;
+    }
+
+    setRecalculando(false);
+
+    if (errCount > 0) {
+      setError(`Se actualizaron con ${errCount} error(es).`);
+    } else {
+      setMsgRecalculo(`✅ ${recetas.length} líneas actualizadas correctamente.`);
+      setTimeout(() => setMsgRecalculo(""), 4000);
+    }
+
+    cargar();
   };
 
   const toggleActivo = async (b: Producto) => {
@@ -76,9 +123,29 @@ export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
       </div>
 
       {!verInhabilitadas && (
-        <button style={{ ...btnPrimary, marginBottom: 14 }} onClick={onNuevo}>
+        <button style={{ ...btnPrimary, marginBottom: 10 }} onClick={onNuevo}>
           + NUEVA BEBIDA
         </button>
+      )}
+
+      <button
+        onClick={recalcularCostos}
+        disabled={recalculando}
+        style={{
+          width: "100%", marginBottom: 14, padding: "10px 16px",
+          borderRadius: 10, border: `1px solid ${colors.primary}`,
+          background: recalculando ? "#f5f5f5" : colors.primaryLight,
+          color: colors.primary, fontWeight: "bold", fontSize: 13,
+          cursor: recalculando ? "not-allowed" : "pointer", opacity: recalculando ? 0.7 : 1,
+        }}
+      >
+        {recalculando ? "Recalculando..." : "🔄 Recalcular costos de recetas"}
+      </button>
+
+      {msgRecalculo && (
+        <div style={{ background: "#e8f5e9", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#2e7d32" }}>
+          {msgRecalculo}
+        </div>
       )}
 
       {error && (
