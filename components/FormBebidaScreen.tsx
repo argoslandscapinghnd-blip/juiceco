@@ -165,6 +165,17 @@ export default function FormBebidaScreen({ bebidaEditar, onGuardar, onBack }: Pr
     setLineas((prev) => prev.filter((l) => l.insumo_id !== insumo_id));
   };
 
+  const actualizarCantidad = (insumo_id: number, valor: string) => {
+    const cant = parseFloat(valor) || 0;
+    setLineas((prev) =>
+      prev.map((l) =>
+        l.insumo_id === insumo_id
+          ? { ...l, cantidad: cant, costo_linea: cant * Number(l.insumo.costo_unitario || 0) }
+          : l
+      )
+    );
+  };
+
   const handleGuardar = async () => {
     if (!nombre.trim()) {
       setError("El nombre es obligatorio.");
@@ -452,33 +463,49 @@ export default function FormBebidaScreen({ bebidaEditar, onGuardar, onBack }: Pr
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    padding: "8px 0",
+                    padding: "10px 0",
                     borderBottom: `1px solid ${colors.border}`,
+                    gap: 8,
                   }}
                 >
-                  <div>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        padding: "2px 6px",
-                        borderRadius: 10,
-                        marginRight: 6,
-                        background: l.insumo.tipo === "ingrediente" ? "#e3f2fd" : "#fff3e0",
-                        color: l.insumo.tipo === "ingrediente" ? "#1565c0" : "#e65100",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {l.insumo.tipo === "ingrediente" ? "🧪" : "📦"}
-                    </span>
-
-                    <span style={{ fontSize: 14, fontWeight: "bold" }}>{l.insumo.nombre}</span>
-
-                    <span style={{ fontSize: 12, color: colors.textMuted, marginLeft: 6 }}>
-                      {l.cantidad} {l.insumo.unidad}
-                    </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          padding: "2px 6px",
+                          borderRadius: 10,
+                          marginRight: 6,
+                          background: l.insumo.tipo === "ingrediente" ? "#e3f2fd" : "#fff3e0",
+                          color: l.insumo.tipo === "ingrediente" ? "#1565c0" : "#e65100",
+                          fontWeight: "bold",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {l.insumo.tipo === "ingrediente" ? "🧪" : "📦"}
+                      </span>
+                      <span style={{ fontSize: 14, fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {l.insumo.nombre}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={l.cantidad}
+                        onChange={(e) => actualizarCantidad(l.insumo_id, e.target.value)}
+                        style={{
+                          width: 72, padding: "5px 8px", borderRadius: 8,
+                          border: `1px solid ${colors.border}`, fontSize: 14,
+                          fontWeight: "bold", textAlign: "center",
+                        }}
+                      />
+                      <span style={{ fontSize: 12, color: colors.textMuted }}>{l.insumo.unidad}</span>
+                    </div>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
                     <span style={{ fontWeight: "bold", fontSize: 13, color: colors.danger }}>
                       L {fmt(l.costo_linea)}
                     </span>
@@ -486,11 +513,8 @@ export default function FormBebidaScreen({ bebidaEditar, onGuardar, onBack }: Pr
                       type="button"
                       onClick={() => eliminarLinea(l.insumo_id)}
                       style={{
-                        background: "none",
-                        border: "none",
-                        color: colors.danger,
-                        cursor: "pointer",
-                        fontSize: 18,
+                        background: "none", border: "none",
+                        color: colors.danger, cursor: "pointer", fontSize: 18, lineHeight: 1,
                       }}
                     >
                       ×
