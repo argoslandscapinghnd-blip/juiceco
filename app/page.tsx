@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { colors } from "@/components/ui/styles";
 import { supabase } from "@/supabase";
 import { Pantalla, ItemCarrito, DatosFactura, MetodoPago, PRECIO_UNITARIO, Usuario, Sucursal, Producto, Insumo } from "@/components/ui/types";
@@ -55,6 +55,86 @@ export default function Home() {
   const [cierreCerradoPor,  setCierreCerradoPor]  = useState<string | undefined>();
   const [cierreOrigen,      setCierreOrigen]      = useState<"menu" | "punto">("menu");
 
+  const historial      = useRef<Pantalla[]>(["login"]);
+  const navegandoAtras = useRef(false);
+  const [hidratado,    setHidratado] = useState(false);
+
+  // Pantallas que necesitan estado transitorio: si se restaura la sesión en ellas,
+  // mejor volver a una pantalla padre estable.
+  const PANTALLA_SEGURA: Partial<Record<Pantalla, Pantalla>> = {
+    cantidad:      "menu",
+    confirmacion:  "menu",
+    caja:          "punto",
+  };
+
+  useEffect(() => {
+    // ── Interceptar botón "Atrás" del celular ──────────────────────────────
+    window.history.pushState({}, "");
+    const onPopState = () => {
+      window.history.pushState({}, "");
+      const hist = historial.current;
+      if (hist.length <= 1) return;
+      const nuevo = hist.slice(0, -1);
+      historial.current = nuevo;
+      navegandoAtras.current = true;
+      setPantalla(nuevo[nuevo.length - 1]);
+    };
+    window.addEventListener("popstate", onPopState);
+
+    // ── Restaurar sesión al volver desde home / recarga ────────────────────
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        try {
+          const raw = sessionStorage.getItem("jc_estado");
+          if (raw) {
+            const s = JSON.parse(raw);
+            setUsuarioActual(s.usuario ?? null);
+            setSucursalId(s.sucursalId   ?? 0);
+            setPuntoNombre(s.puntoNombre  ?? "");
+            setSesionCajaId(s.sesionCajaId ?? 0);
+            setFondoInicial(s.fondoInicial  ?? 0);
+            setCarrito(s.carrito ?? []);
+            const p = (PANTALLA_SEGURA[s.pantalla as Pantalla] ?? s.pantalla ?? "login") as Pantalla;
+            const h = (s.historial ?? [p]) as Pantalla[];
+            historial.current = h;
+            navegandoAtras.current = true;
+            setPantalla(p);
+          }
+        } catch {}
+      }
+      setHidratado(true);
+    })();
+
+    return () => window.removeEventListener("popstate", onPopState);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Registrar cada cambio de pantalla en el historial ─────────────────────
+  useEffect(() => {
+    if (!hidratado) return;
+    if (navegandoAtras.current) { navegandoAtras.current = false; return; }
+    if (pantalla === "login" || pantalla === "confirmacion") {
+      historial.current = [pantalla];
+    } else {
+      const last = historial.current[historial.current.length - 1];
+      if (last !== pantalla) historial.current = [...historial.current, pantalla];
+    }
+  }, [pantalla, hidratado]);
+
+  // ── Persistir estado en sessionStorage ───────────────────────────────────
+  useEffect(() => {
+    if (!hidratado) return;
+    if (!usuarioActual) { sessionStorage.removeItem("jc_estado"); return; }
+    sessionStorage.setItem("jc_estado", JSON.stringify({
+      usuario:     usuarioActual,
+      sucursalId,  puntoNombre, sesionCajaId, fondoInicial, carrito,
+      pantalla,    historial: historial.current,
+    }));
+  }, [hidratado, usuarioActual, sucursalId, puntoNombre, sesionCajaId, fondoInicial, carrito, pantalla]);
+
+  if (!hidratado) return null;
+
   const totalCarrito = carrito.reduce((s, i) => s + i.cantidad * i.precio, 0);
   const esAdmin = usuarioActual?.rol === "administrador";
 
@@ -75,6 +155,7 @@ export default function Home() {
   };
 
   const cerrarSesionCajero = () => {
+    sessionStorage.removeItem("jc_estado");
     supabase.auth.signOut().catch(() => {});
     setCarrito([]); setProductoActual(null); setMontoRecibido(undefined);
     setConFactura(false); setDatosFactura(undefined);
@@ -108,6 +189,7 @@ export default function Home() {
   const handleCierreCajaCompletado = () => {
     // Si era mi propia caja → limpiar sesión y logout
     if (!cierreCerradoPor) {
+      sessionStorage.removeItem("jc_estado");
       supabase.auth.signOut().catch(() => {});
       setSesionCajaId(0); setSucursalId(0); setPuntoNombre(""); setFondoInicial(0);
       setCarrito([]); setProductoActual(null);
@@ -215,7 +297,7 @@ export default function Home() {
             onMaestros={() => setPantalla("admin_maestros")}
             onReportes={() => setPantalla("admin_dashboard")}
             onModoCajero={() => setPantalla("punto")}
-            onCerrarSesion={() => { supabase.auth.signOut().catch(() => {}); setUsuarioActual(null); setPantalla("login"); }}
+            onCerrarSesion={() => { sessionStorage.removeItem("jc_estado"); supabase.auth.signOut().catch(() => {}); setUsuarioActual(null); setPantalla("login"); }}
           />
         )}
         {pantalla === "admin_maestros" && (
