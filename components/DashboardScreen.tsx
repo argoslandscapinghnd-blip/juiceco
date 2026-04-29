@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/supabase";
 import { hoyHN, inicioDiaHN, finDiaHN } from "@/lib/utils";
 
-interface KPI { totalVentas: number; numVentas: number; ticketPromedio: number; utilidadEstimada: number; }
+interface KPI { totalVentas: number; numVentas: number; ticketPromedio: number; utilidadReal: number; margenReal: number; }
 interface VentaSucursal { sucursal_id: string; nombre: string; total: number; num_ventas: number; cajeros: string[]; }
 interface VentaCajero   { usuario_id: string; nombre: string; total: number; num_ventas: number; sucursales: string[]; }
 interface VentaProducto { nombre_producto: string; cantidad: number; subtotal: number; }
@@ -111,13 +111,30 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
       const fromTs = from.includes("T") ? from : inicioDiaHN(from);
       const toTs   = to.includes("T")   ? to   : finDiaHN(to);
 
-      const { data: sucData } = await supabase.from("sucursales").select("id, nombre, codigo");
-      const { data: usrData } = await supabase.from("usuarios").select("id, nombre");
+      const [
+        { data: sucData }, { data: usrData },
+        { data: recetasData }, { data: productosData },
+      ] = await Promise.all([
+        supabase.from("sucursales").select("id, nombre, codigo"),
+        supabase.from("usuarios").select("id, nombre"),
+        supabase.from("recetas").select("producto_id, costo_total"),
+        supabase.from("productos").select("id, nombre"),
+      ]);
 
       const sucMap: Record<string, string> = {};
       (sucData || []).forEach((s: any) => { sucMap[String(s.id)] = `${s.codigo} - ${s.nombre}`; });
       const usrMap: Record<string, string> = {};
       (usrData || []).forEach((u: any) => { usrMap[u.id] = u.nombre; });
+
+      // Costo real de receta por nombre de producto
+      const costoPorId: Record<number, number> = {};
+      (recetasData || []).forEach((r: any) => {
+        costoPorId[r.producto_id] = (costoPorId[r.producto_id] || 0) + Number(r.costo_total || 0);
+      });
+      const costoReceta: Record<string, number> = {};
+      (productosData || []).forEach((p: any) => {
+        costoReceta[p.nombre] = costoPorId[p.id] || 0;
+      });
 
       setSucOpciones((sucData || []).map((s: any) => ({ id: String(s.id), nombre: `${s.codigo} - ${s.nombre}` })));
       setCajOpciones((usrData || []).map((u: any) => ({ id: u.id, nombre: u.nombre })));
@@ -130,16 +147,17 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
       const { data: ventas } = await q;
 
       if (!ventas || ventas.length === 0) {
-        setKpi({ totalVentas: 0, numVentas: 0, ticketPromedio: 0, utilidadEstimada: 0 });
+        setKpi({ totalVentas: 0, numVentas: 0, ticketPromedio: 0, utilidadReal: 0, margenReal: 0 });
         setSucursales([]); setCajeros([]); setProductos([]); setMetodos([]);
         setLoading(false); return;
       }
 
-      const totalVentas      = ventas.reduce((s, v) => s + (v.total || 0), 0);
-      const numVentas        = ventas.length;
-      const ticketPromedio   = numVentas > 0 ? totalVentas / numVentas : 0;
-      const utilidadEstimada = totalVentas * 0.36;
-      setKpi({ totalVentas, numVentas, ticketPromedio, utilidadEstimada });
+      const totalVentas    = ventas.reduce((s, v) => s + (v.total || 0), 0);
+      const numVentas      = ventas.length;
+      const ticketPromedio = numVentas > 0 ? totalVentas / numVentas : 0;
+
+      // Costo real se calcula después de obtener venta_items (más abajo)
+      // Guardamos el mapa de costos para usarlo en el agregado de productos también
 
       const sucAgg: Record<string, { total: number; num: number; usuarios: Set<string> }> = {};
       ventas.forEach((v) => {
@@ -168,14 +186,21 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
       const ventaIds = ventas.map(v => v.id);
       const { data: items } = await supabase.from("venta_items")
         .select("nombre_producto, cantidad, subtotal").in("venta_id", ventaIds);
+
+      let costoTotal = 0;
       const prodAgg: Record<string, { cantidad: number; subtotal: number }> = {};
       (items || []).forEach((i: any) => {
         if (!prodAgg[i.nombre_producto]) prodAgg[i.nombre_producto] = { cantidad: 0, subtotal: 0 };
         prodAgg[i.nombre_producto].cantidad += i.cantidad || 0;
         prodAgg[i.nombre_producto].subtotal += i.subtotal || 0;
+        costoTotal += (i.cantidad || 0) * (costoReceta[i.nombre_producto] || 0);
       });
       setProductos(Object.entries(prodAgg).map(([nombre_producto, d]) => ({ nombre_producto, ...d }))
         .sort((a, b) => b.cantidad - a.cantidad).slice(0, 8));
+
+      const utilidadReal = totalVentas - costoTotal;
+      const margenReal   = totalVentas > 0 ? (utilidadReal / totalVentas) * 100 : 0;
+      setKpi({ totalVentas, numVentas, ticketPromedio, utilidadReal, margenReal });
 
       const metAgg: Record<string, { total: number; num_ventas: number }> = {};
       ventas.forEach((v) => {
@@ -265,7 +290,7 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
               <KpiCard icon="📦" label="Unidades"      value={totalUnidades.toString()} />
-              <KpiCard icon="📊" label="Utilidad est." value={fmt(kpi.utilidadEstimada)} sub="~36% margen" />
+              <KpiCard icon="📊" label="Utilidad real" value={fmt(kpi.utilidadReal)} sub={`${kpi.margenReal.toFixed(1)}% margen`} />
             </div>
 
             <Section title="Por sucursal" icon="🏪">
