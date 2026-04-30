@@ -11,6 +11,7 @@ interface Props {
   onSucursales:   () => void;
   onMaestros:     () => void;
   onReportes:     () => void;
+  onVentas:       () => void;
   onModoCajero:   () => void;
   onCerrarSesion: () => void;
 }
@@ -26,14 +27,15 @@ const fmt = (n: number) =>
   Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const modulos = [
-  { emoji: "👥", titulo: "Usuarios",   desc: "Crear, editar e inhabilitar usuarios",  key: "usuarios"   },
-  { emoji: "🏪", titulo: "Sucursales", desc: "Crear, editar e inhabilitar sucursales", key: "sucursales" },
-  { emoji: "📚", titulo: "Maestros",   desc: "Bebidas, unidades, insumos y recetas",   key: "maestros"   },
-  { emoji: "📊", titulo: "Dashboard",  desc: "Ventas, cajeros, productos y métodos",   key: "reportes"   },
+  { emoji: "👥", titulo: "Usuarios",      desc: "Crear, editar e inhabilitar usuarios",       key: "usuarios"   },
+  { emoji: "🏪", titulo: "Sucursales",    desc: "Crear, editar e inhabilitar sucursales",      key: "sucursales" },
+  { emoji: "📚", titulo: "Maestros",      desc: "Bebidas, unidades, insumos y recetas",        key: "maestros"   },
+  { emoji: "📊", titulo: "Dashboard",     desc: "Ventas, cajeros, productos y métodos",        key: "reportes"   },
+  { emoji: "✏️",  titulo: "Editar ventas", desc: "Corregir método de pago de ventas por fecha", key: "ventas"     },
 ];
 
 export default function AdminMenuScreen({
-  usuario, onUsuarios, onSucursales, onMaestros, onReportes,
+  usuario, onUsuarios, onSucursales, onMaestros, onReportes, onVentas,
   onModoCajero, onCerrarSesion,
 }: Props) {
   const [metricas, setMetricas] = useState<Metricas | null>(null);
@@ -54,7 +56,8 @@ export default function AdminMenuScreen({
   };
 
   const handlers: Record<string, () => void> = {
-    usuarios: onUsuarios, sucursales: onSucursales, maestros: onMaestros, reportes: onReportes,
+    usuarios: onUsuarios, sucursales: onSucursales, maestros: onMaestros,
+    reportes: onReportes, ventas: onVentas,
   };
 
   return (

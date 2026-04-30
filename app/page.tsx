@@ -27,6 +27,7 @@ import UnidadesScreen     from "@/components/UnidadesScreen";
 import InsumosScreen      from "@/components/InsumosScreen";
 import FormInsumoScreen   from "@/components/FormInsumoScreen";
 import DashboardScreen    from "@/components/DashboardScreen";
+import EditarVentasScreen from "@/components/EditarVentasScreen";
 
 export default function Home() {
   const [pantalla,       setPantalla]       = useState<Pantalla>("login");
@@ -296,6 +297,7 @@ export default function Home() {
             onSucursales={() => setPantalla("admin_sucursales")}
             onMaestros={() => setPantalla("admin_maestros")}
             onReportes={() => setPantalla("admin_dashboard")}
+            onVentas={() => setPantalla("admin_ventas")}
             onModoCajero={() => setPantalla("punto")}
             onCerrarSesion={() => { sessionStorage.removeItem("jc_estado"); supabase.auth.signOut().catch(() => {}); setUsuarioActual(null); setPantalla("login"); }}
           />
@@ -329,6 +331,9 @@ export default function Home() {
         )}
         {pantalla === "admin_dashboard" && (
           <DashboardScreen onBack={() => setPantalla("admin")} />
+        )}
+        {pantalla === "admin_ventas" && (
+          <EditarVentasScreen onBack={() => setPantalla("admin")} />
         )}
         {(pantalla === "admin_nuevo_insumo" || pantalla === "admin_editar_insumo") && (
           <FormInsumoScreen insumoEditar={insumoEditar} onGuardar={() => { setInsumoEditar(undefined); setPantalla("admin_insumos"); }} onBack={() => setPantalla("admin_insumos")} />
