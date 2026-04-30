@@ -185,7 +185,7 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
 
       const ventaIds = ventas.map(v => v.id);
       const { data: items } = await supabase.from("venta_items")
-        .select("nombre_producto, cantidad, subtotal").in("venta_id", ventaIds);
+        .select("nombre_producto, cantidad, subtotal, costo_total").in("venta_id", ventaIds);
 
       let costoTotal = 0;
       const prodAgg: Record<string, { cantidad: number; subtotal: number }> = {};
@@ -193,7 +193,11 @@ export default function DashboardScreen({ onBack }: { onBack: () => void }) {
         if (!prodAgg[i.nombre_producto]) prodAgg[i.nombre_producto] = { cantidad: 0, subtotal: 0 };
         prodAgg[i.nombre_producto].cantidad += i.cantidad || 0;
         prodAgg[i.nombre_producto].subtotal += i.subtotal || 0;
-        costoTotal += (i.cantidad || 0) * (costoReceta[i.nombre_producto] || 0);
+        // Usar costo persistido en la venta; fallback a receta actual para ventas antiguas
+        const costo = Number(i.costo_total) > 0
+          ? Number(i.costo_total)
+          : (i.cantidad || 0) * (costoReceta[i.nombre_producto] || 0);
+        costoTotal += costo;
       });
       setProductos(Object.entries(prodAgg).map(([nombre_producto, d]) => ({ nombre_producto, ...d }))
         .sort((a, b) => b.cantidad - a.cantidad).slice(0, 8));

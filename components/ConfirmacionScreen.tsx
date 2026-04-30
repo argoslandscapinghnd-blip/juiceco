@@ -42,9 +42,30 @@ export default function ConfirmacionScreen({
 
   const guardarVenta = async () => {
     try {
-      const { data: suc } = await supabase
-        .from("sucursales").select("nombre, codigo").eq("id", sucursalId).single();
+      const nombres = [...new Set(carrito.map((i) => i.nombre))];
+
+      const [{ data: suc }, { data: productosData }] = await Promise.all([
+        supabase.from("sucursales").select("nombre, codigo").eq("id", sucursalId).single(),
+        supabase.from("productos").select("id, nombre").in("nombre", nombres),
+      ]);
+
       if (suc) setSucursalNombre(`${suc.codigo} - ${suc.nombre}`);
+
+      // Leer costos de recetas para snapshot al momento de la venta
+      const productoIds = (productosData || []).map((p: any) => p.id);
+      const { data: recetasData } = await supabase
+        .from("recetas")
+        .select("producto_id, costo_total")
+        .in("producto_id", productoIds);
+
+      const costoPorId: Record<number, number> = {};
+      (recetasData || []).forEach((r: any) => {
+        costoPorId[r.producto_id] = (costoPorId[r.producto_id] || 0) + Number(r.costo_total || 0);
+      });
+      const costoReceta: Record<string, number> = {};
+      (productosData || []).forEach((p: any) => {
+        costoReceta[p.nombre] = costoPorId[p.id] || 0;
+      });
 
       const { data: venta, error: errVenta } = await supabase
         .from("ventas")
@@ -62,9 +83,13 @@ export default function ConfirmacionScreen({
 
       const { error: errItems } = await supabase.from("venta_items").insert(
         carrito.map((item) => ({
-          venta_id: venta.id, nombre_producto: item.nombre,
-          cantidad: item.cantidad, precio_unitario: item.precio,
-          subtotal: item.cantidad * item.precio,
+          venta_id:        venta.id,
+          nombre_producto: item.nombre,
+          cantidad:        item.cantidad,
+          precio_unitario: item.precio,
+          subtotal:        item.cantidad * item.precio,
+          costo_unitario:  costoReceta[item.nombre] ?? 0,
+          costo_total:     item.cantidad * (costoReceta[item.nombre] ?? 0),
         }))
       );
       if (errItems) throw errItems;
