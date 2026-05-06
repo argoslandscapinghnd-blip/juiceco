@@ -16,6 +16,7 @@ interface Props {
 export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
   const [bebidas,          setBebidas]          = useState<Producto[]>([]);
   const [costos,           setCostos]           = useState<Record<number, number>>({});
+  const [vendidas,         setVendidas]         = useState<Record<string, number>>({});
   const [cargando,         setCargando]         = useState(true);
   const [error,            setError]            = useState("");
   const [verInhabilitadas, setVerInhabilitadas] = useState(false);
@@ -39,12 +40,23 @@ export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
 
     setBebidas(productos ?? []);
 
-    const { data: recetas } = await supabase.from("recetas").select("producto_id, costo_total");
+    const [{ data: recetas }, { data: itemsData }] = await Promise.all([
+      supabase.from("recetas").select("producto_id, costo_total"),
+      supabase.from("venta_items").select("nombre_producto, cantidad"),
+    ]);
+
     const mapaCostos: Record<number, number> = {};
     (recetas ?? []).forEach((r: any) => {
       mapaCostos[r.producto_id] = (mapaCostos[r.producto_id] || 0) + Number(r.costo_total || 0);
     });
     setCostos(mapaCostos);
+
+    const mapaVendidas: Record<string, number> = {};
+    (itemsData ?? []).forEach((i: any) => {
+      mapaVendidas[i.nombre_producto] = (mapaVendidas[i.nombre_producto] || 0) + Number(i.cantidad || 0);
+    });
+    setVendidas(mapaVendidas);
+
     setCargando(false);
   };
 
@@ -182,7 +194,14 @@ export default function BebidasScreen({ onNuevo, onEditar, onBack }: Props) {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: "bold", fontSize: 15 }}>{b.nombre}</div>
-                    <div style={{ color: colors.primary, fontWeight: "bold" }}>L {fmt(b.precio)}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ color: colors.primary, fontWeight: "bold" }}>L {fmt(b.precio)}</span>
+                      {(vendidas[b.nombre] || 0) > 0 && (
+                        <span style={{ fontSize: 11, color: colors.textMuted, background: "#f3f4f6", borderRadius: 10, padding: "1px 8px" }}>
+                          {vendidas[b.nombre].toLocaleString()} uds vendidas
+                        </span>
+                      )}
+                    </div>
                     <div style={{ fontSize: 12, color: colors.textMuted }}>Costo: L {fmt(costo)}</div>
                     <div style={{ fontSize: 12, color: utilidad >= 0 ? colors.primary : colors.danger }}>
                       Utilidad: L {fmt(utilidad)}
